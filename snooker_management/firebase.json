@@ -1,0 +1,41 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "snooker-management-39520",
+          "appId": "1:313359061224:android:f90b5f199fcfa17b7db95d",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "snooker-management-39520",
+          "configurations": {
+            "android": "1:313359061224:android:f90b5f199fcfa17b7db95d",
+            "ios": "1:313359061224:ios:b408b2395e39e3667db95d",
+            "macos": "1:313359061224:ios:b408b2395e39e3667db95d",
+            "web": "1:313359061224:web:e3eb5836f422167b7db95d",
+            "windows": "1:313359061224:web:a0e554186b778e3b7db95d"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+}

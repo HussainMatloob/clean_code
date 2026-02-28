@@ -1,0 +1,191 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:snooker_management/constants/color_constants.dart';
+import 'package:snooker_management/controller/employee_controller.dart';
+import 'package:snooker_management/models/employee_detail_model.dart';
+import 'package:snooker_management/views/widgets/custom_text.dart';
+
+class EmployeePdfPreviewPage extends StatelessWidget {
+  const EmployeePdfPreviewPage({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<EmployeeController>(
+      init:
+          Get.isRegistered<EmployeeController>() ? null : EmployeeController(),
+      builder: (employeeController) {
+        pw.Document currentPagePdf = pw.Document();
+        // Get the current page data dynamically
+        if (employeeController.allPages.isEmpty ||
+            employeeController.allPages == []) {
+        } else {
+          // Get current page data
+          List<EmployeeModel> currentPageData =
+              employeeController.allPages[employeeController.currentPage - 1];
+
+          // Generate the page for the current data
+
+          currentPagePdf.addPage(
+            pw.Page(
+              margin: pw.EdgeInsets.all(14.w),
+              build: (pw.Context context) {
+                return pw.Column(
+                  children: [
+                    pw.Container(
+                      height: 60.h,
+                      padding: pw.EdgeInsets.all(10.r),
+                      color: PdfColor.fromHex("#aaddfbd9"),
+                      child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.start,
+                          children: [
+                            pw.Container(
+                                child: pw.Image(
+                                    pw.MemoryImage(employeeController.image!),
+                                    width: 40.w,
+                                    height: 40.h,
+                                    fit: pw.BoxFit.cover)),
+                            pw.Padding(
+                              padding: pw.EdgeInsets.only(left: 10.w),
+                              child: pw.Column(
+                                  crossAxisAlignment:
+                                      pw.CrossAxisAlignment.start,
+                                  children: [
+                                    pw.Text(
+                                      'Employees Report',
+                                      style: pw.TextStyle(
+                                        fontSize: 8.sp,
+                                        fontWeight: pw.FontWeight.bold,
+                                        color: PdfColors.black,
+                                      ),
+                                    ),
+                                    pw.Text(
+                                      employeeController.snookerName ?? "",
+                                      style: pw.TextStyle(
+                                        fontSize: 7.sp,
+                                        color: PdfColors.black,
+                                      ),
+                                    ),
+                                    pw.Text(
+                                      '(Page ${employeeController.currentPage})',
+                                      style: pw.TextStyle(
+                                        fontSize: 6.sp,
+                                        color: PdfColors.black,
+                                      ),
+                                    ),
+                                  ]),
+                            )
+                          ]),
+                    ),
+                    pw.SizedBox(height: 14.h),
+                    pw.Table.fromTextArray(
+                      headers: [
+                        'Employee Name',
+                        'NIC',
+                        'Type',
+                        'Contact',
+                        'Address',
+                        'shift'
+                      ],
+                      headerStyle: pw.TextStyle(
+                        fontSize: 5.sp,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.green,
+                      ),
+                      headerDecoration: const pw.BoxDecoration(
+                        color: PdfColors.grey300, // Set header background color
+                      ),
+                      cellStyle: pw.TextStyle(
+                        fontSize: 4.sp, // Set data row text size
+                      ),
+                      data: currentPageData.map((employee) {
+                        return [
+                          employee.employeeName,
+                          employee.employeeNic,
+                          employee.employeeType,
+                          employee.employeeContact,
+                          employee.employeeAddress.length > 40
+                              ? '${employee.employeeAddress.substring(0, 40)}...'
+                              : employee.employeeAddress,
+                          employee.shift
+                        ];
+                      }).toList(),
+                    ),
+                  ],
+                );
+              },
+            ),
+          );
+        }
+
+        return Scaffold(
+          body: employeeController.allPages.isEmpty ||
+                  employeeController.allPages == []
+              ? Center(
+                  child: Text(
+                    textAlign: TextAlign.center,
+                    "We couldn’t find any data at the moment. Please refresh the page and try again using the proper steps or process.",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: ColorConstant.blackColor),
+                  ),
+                )
+              : Column(
+                  children: [
+                    Expanded(
+                      child: PdfPreview(
+                        build: (format) async => currentPagePdf.save(),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.first_page),
+                          onPressed: () => employeeController.goToFirstPage(),
+                        ),
+                        IconButton(
+                            icon: const Icon(Icons.arrow_back),
+                            onPressed: () =>
+                                employeeController.goToPreviousPage()),
+                        SizedBox(
+                          width: 50.w,
+                          child: TextField(
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            decoration:
+                                const InputDecoration(hintText: "Go to page"),
+                            onSubmitted: (value) {
+                              final pageNumber = int.tryParse(value) ??
+                                  employeeController.currentPage;
+                              employeeController.goToPage(
+                                  pageNumber, employeeController.totalPages);
+                            },
+                          ),
+                        ),
+                        CustomText(
+                            'Page ${employeeController.currentPage} of ${employeeController.totalPages}'),
+                        IconButton(
+                            icon: const Icon(Icons.arrow_forward),
+                            onPressed: () => employeeController
+                                .goToNextPage(employeeController.totalPages)),
+                        IconButton(
+                          icon: const Icon(Icons.last_page),
+                          onPressed: () => employeeController
+                              .goToLastPage(employeeController.totalPages),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}

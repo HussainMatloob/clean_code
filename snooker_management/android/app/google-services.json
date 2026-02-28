@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "313359061224",
+    "project_id": "snooker-management-39520",
+    "storage_bucket": "snooker-management-39520.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:313359061224:android:fabbcfa57b07471d7db95d",
+        "android_client_info": {
+          "package_name": "com.example.snooker_club"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDh84fW2gYhTqqb_XTMaJyxe3NC-2Ob_EA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:313359061224:android:f90b5f199fcfa17b7db95d",
+        "android_client_info": {
+          "package_name": "com.example.snooker_managem"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDh84fW2gYhTqqb_XTMaJyxe3NC-2Ob_EA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:313359061224:android:c26478b7480ae3f37db95d",
+        "android_client_info": {
+          "package_name": "com.example.snooker_management"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDh84fW2gYhTqqb_XTMaJyxe3NC-2Ob_EA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
