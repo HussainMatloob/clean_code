@@ -1,11 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
+
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snooker_management/constants/images_constant.dart';
@@ -13,6 +11,7 @@ import 'package:snooker_management/models/attendance_model.dart';
 import 'package:snooker_management/models/employee_detail_model.dart';
 import 'package:snooker_management/services/attendance_services.dart';
 import 'package:snooker_management/services/employee_services.dart';
+import 'package:snooker_management/services/pdf_services/attendance_pdf_service.dart';
 import 'package:snooker_management/utils/flush_messages_util.dart';
 import 'package:snooker_management/utils/helper/dialog_helper.dart';
 
@@ -46,14 +45,6 @@ class AttendanceController extends GetxController {
     super.onClose();
   }
 
-  String formatDate(Timestamp timestamp) {
-    // Convert Timestamp to DateTime
-    DateTime dateTime = timestamp.toDate();
-
-    // Format DateTime to 'yyyy-MM-dd'
-    return DateFormat('dd-MM-yyyy').format(dateTime);
-  }
-
   void setEmployeeShift(String shift) {
     selectedEmployeeShift = shift;
     update();
@@ -69,7 +60,8 @@ class AttendanceController extends GetxController {
     try {
       attendance = await FirebaseAttendanceServices.getAttendance(
           context, selectedEmployeeShift.toString());
-      if (attendance == null) {
+
+      if (attendance == null || attendance == []) {
         attendanceExist = false;
       } else {
         attendanceExist = true;
@@ -167,6 +159,11 @@ class AttendanceController extends GetxController {
     update();
   }
 
+  String? snookerName;
+  Uint8List? image;
+
+  Uint8List? pdfBytes;
+
   /*--------------------------------------------------------------------------*/
   /*                        generate Attendance reports                       */
   /*--------------------------------------------------------------------------*/
@@ -176,7 +173,6 @@ class AttendanceController extends GetxController {
       if (selectedAttendanceReportOption == "Daily" &&
           selectedCustomName != null) {
       } else {
-        resetPdfCurrentPage();
         if (selectedAttendanceReportOption != null &&
             selectedCustomName != null) {
           FlushMessagesUtil.easyLoading();
@@ -189,12 +185,12 @@ class AttendanceController extends GetxController {
                   selectedAttendanceReportOption!,
                   selectedCustomName!);
 
-          EasyLoading.dismiss();
           if (!context.mounted) return;
           List<AttendanceModel> attendanceModel = attendanceReportList;
           if (attendanceModel.isNotEmpty) {
             attendanceReportGenerator(context, attendanceModel);
           } else {
+            EasyLoading.dismiss();
             DialogHelper.showNoticeDialog(
                 context, "No Attendance exist for the selected criteria");
           }
@@ -209,16 +205,17 @@ class AttendanceController extends GetxController {
                   selectedEmployeeShift ?? "Morning",
                   selectedAttendanceReportOption!);
 
-          EasyLoading.dismiss();
           if (!context.mounted) return;
           List<AttendanceModel> attendanceModel = attendanceReportList;
           if (attendanceModel.isNotEmpty) {
             attendanceReportGenerator(context, attendanceModel);
           } else {
+            EasyLoading.dismiss();
             DialogHelper.showNoticeDialog(
                 context, "No Attendance exist for the selected criteria");
           }
         } else {
+          EasyLoading.dismiss();
           DialogHelper.showAttentionDialog(
               context, "Please select a report option to continue");
         }
@@ -229,115 +226,31 @@ class AttendanceController extends GetxController {
       update();
       if (!context.mounted) return;
       DialogHelper.showExceptionErrorDialog(context, "$e");
-    } finally {
-      EasyLoading.dismiss();
     }
   }
 
-  int totalPages = 1;
-  int currentPage = 1;
-  String? snookerName;
-  Uint8List? image;
-
-  List<List<AttendanceModel>> allPages = [];
-  // Reset page for fresh start
-  void resetPdfCurrentPage() {
-    currentPage = 1;
-    update();
-  }
-
-  // Generate PDF dynamically, checking space per page
-  Future<Map<String, dynamic>> generatePdf(
-      BuildContext context, List<AttendanceModel> attendanceList) async {
-    final pdf = pw.Document();
-    const pageFormat = PdfPageFormat.a4; // A4 page format
-    final pageHeight = pageFormat.height; // A4 page height
-    const margin = 20.0; // Margin space for top, bottom, left, and right
-    const headerHeight = 30.0; // Space for header (adjust as needed)
-    const contentHeight = 20.0; // Height of each row (adjust based on content)
-    double currentHeight = headerHeight; // Start with header height
-    List<List<AttendanceModel>> allPages = [];
-    List<AttendanceModel> currentPageAttendance = [];
-
-    for (var attendance in attendanceList) {
-      // Check if adding this row will exceed available space (accounting for margins and header)
-      if (currentHeight + contentHeight > (pageHeight - margin * 2)) {
-        // If it exceeds, add the current page to allPages and start a new page
-        allPages.add(currentPageAttendance);
-        currentPageAttendance = [
-          attendance
-        ]; // Start with current row on next page
-        currentHeight = headerHeight +
-            contentHeight; // Reset height for new page (including header)
-      } else {
-        // If there's space, add the row to the current page
-        currentPageAttendance.add(attendance);
-        currentHeight += contentHeight; // Add row height to the current height
-      }
-    }
-
-    // Add remaining rows to the last page if any
-    if (currentPageAttendance.isNotEmpty) {
-      allPages.add(currentPageAttendance);
-    }
-
-    totalPages = allPages.length;
-
-    // Return the generated PDF document, total pages, and paginated data
-    return {'pdf': pdf, 'totalPages': totalPages, 'allPages': allPages};
-  }
-
-  // Handle table and page generation
-  void attendanceReportGenerator(
-      BuildContext context, List<AttendanceModel> attendanceModel) async {
-    final result = await generatePdf(context, attendanceModel);
-    final pdf = result['pdf'] as pw.Document;
-    totalPages = result['totalPages'] as int;
-    allPages = result['allPages'] as List<List<AttendanceModel>>;
+  Future<void> attendanceReportGenerator(
+      BuildContext context, List<AttendanceModel> attendance) async {
+    /// LOAD LOGO
     image =
         (await rootBundle.load(ImageConstant.tableLogo)).buffer.asUint8List();
 
+    /// LOAD CLUB NAME
     SharedPreferences sp = await SharedPreferences.getInstance();
     snookerName = sp.getString('clubName') ?? "";
+    update();
 
-    //  Navigate using GoRouter
+    /// ⭐ GENERATE PDF
+    pdfBytes = await AttendancePdfService.generatePdf(
+      attendance: attendance,
+      snookerName: snookerName ?? "",
+      image: image,
+    );
+
+    EasyLoading.dismiss();
+
+    update();
     if (!context.mounted) return;
     context.go('/app/attendancePdf');
-  }
-
-  // Page navigation methods
-  void goToFirstPage() {
-    if (currentPage != 1) {
-      currentPage = 1;
-      update();
-    }
-  }
-
-  void goToPreviousPage() {
-    if (currentPage > 1) {
-      currentPage--;
-      update();
-    }
-  }
-
-  void goToNextPage() {
-    if (currentPage < totalPages) {
-      currentPage++;
-      update();
-    }
-  }
-
-  void goToLastPage() {
-    if (currentPage != totalPages) {
-      currentPage = totalPages;
-      update();
-    }
-  }
-
-  void goToPage(int pageNumber) {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      currentPage = pageNumber;
-      update();
-    }
   }
 }

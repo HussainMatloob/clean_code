@@ -80,81 +80,79 @@ class GlassLoginCard extends StatelessWidget {
                 const SizedBox(height: 22),
 
                 // Email
-                _Field(
-                  label: "Email",
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  icon: Icons.email_outlined,
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty)
-                      return "Email is required";
-                    if (!RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
-                        .hasMatch(v.trim())) {
-                      return "Enter a valid email";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
+                // _Field(
+                //   label: "Email",
+                //   controller: email,
+                //   keyboardType: TextInputType.emailAddress,
+                //   icon: Icons.email_outlined,
+                //   validator: (v) {
+                //     if (v == null || v.trim().isEmpty)
+                //       return "Email is required";
+                //     if (!RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+                //         .hasMatch(v.trim())) {
+                //       return "Enter a valid email";
+                //     }
+                //     return null;
+                //   },
+                // ),
+                // const SizedBox(height: 14),
 
                 // Password
-                _Field(
-                  label: "Password",
-                  controller: password,
-                  icon: Icons.lock_outline,
-                  obscureText: obscure,
-                  onToggleObscure: setObsecure,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Password is required";
-                    if (v.length < 6) return "Minimum 6 characters";
-                    return null;
-                  },
-                ),
+                // _Field(
+                //   label: "Password",
+                //   controller: password,
+                //   icon: Icons.lock_outline,
+                //   obscureText: obscure,
+                //   onToggleObscure: setObsecure,
+                //   validator: (v) {
+                //     if (v == null || v.isEmpty) return "Password is required";
+                //     if (v.length < 6) return "Minimum 6 characters";
+                //     return null;
+                //   },
+                // ),
 
                 // Forgot
 
-                SizedBox(height: 20.h),
+                // SizedBox(height: 20.h),
 
-                // Login button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {}, //loading ? null : onLogin,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: green,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ).merge(
-                      ButtonStyle(
-                        overlayColor: WidgetStateProperty.resolveWith(
-                          (s) => s.contains(WidgetState.pressed)
-                              ? Colors.white.withOpacity(0.08)
-                              : null,
-                        ),
-                      ),
-                    ),
-                    child:
-                        //  loading
-                        //     ? const SizedBox(
-                        //         height: 22,
-                        //         width: 22,
-                        //         child: CircularProgressIndicator(strokeWidth: 2),
-                        //       )
-                        //     :
-                        const Text(
-                      "LOG IN",
-                      style: TextStyle(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                  ),
-                ),
+                // // Login button
+                // SizedBox(
+                //   width: double.infinity,
+                //   child: ElevatedButton(
+                //     onPressed: loading ? null : onLogin, //():{}
+                //     style: ElevatedButton.styleFrom(
+                //       padding: const EdgeInsets.symmetric(vertical: 14),
+                //       backgroundColor: green,
+                //       foregroundColor: Colors.white,
+                //       elevation: 0,
+                //       shape: RoundedRectangleBorder(
+                //         borderRadius: BorderRadius.circular(12),
+                //       ),
+                //     ).merge(
+                //       ButtonStyle(
+                //         overlayColor: WidgetStateProperty.resolveWith(
+                //           (s) => s.contains(WidgetState.pressed)
+                //               ? Colors.white.withOpacity(0.08)
+                //               : null,
+                //         ),
+                //       ),
+                //     ),
+                //     child: loading
+                //         ? const SizedBox(
+                //             height: 22,
+                //             width: 22,
+                //             child: CircularProgressIndicator(strokeWidth: 2),
+                //           )
+                //         : const Text(
+                //             "LOG IN",
+                //             style: TextStyle(
+                //               fontSize: 16.5,
+                //               fontWeight: FontWeight.w700,
+                //               letterSpacing: 0.4,
+                //             ),
+                //           ),
+                //   ),
+                // ),
                 SizedBox(height: 20.h),
 
                 // Login button

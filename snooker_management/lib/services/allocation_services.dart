@@ -113,8 +113,8 @@ class FirebaseAllocationServices {
         players.add(player4);
       }
 
-      DateTime now = DateTime.now();
-      Timestamp timestamp = Timestamp.fromDate(now);
+      // DateTime now = DateTime.now().toUtc();
+      // Timestamp timestamp = Timestamp.fromDate(now);
 
       await fireStore
           .collection("CancelAndUpdateAllocations")
@@ -122,7 +122,7 @@ class FirebaseAllocationServices {
           .collection("CancelAndUpdateAllocationsDetail")
           .doc(tableModel.id)
           .update({
-        "startTime": isAddAble ? timestamp : oldTime,
+        "startTime": isAddAble ? FieldValue.serverTimestamp() : oldTime,
         "playersName": players,
         "isAllocated": isAllocate,
         "gameType": gameType,
@@ -148,8 +148,8 @@ class FirebaseAllocationServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      DateTime now = DateTime.now();
-      Timestamp timestamp = Timestamp.fromDate(now);
+      // DateTime now = DateTime.now();
+      // Timestamp timestamp = Timestamp.fromDate(now);
       final List players = [];
       await fireStore
           .collection("CancelAndUpdateAllocations")
@@ -157,7 +157,7 @@ class FirebaseAllocationServices {
           .collection("CancelAndUpdateAllocationsDetail")
           .doc(tableModel.id)
           .update({
-        "startTime": timestamp,
+        "startTime": FieldValue.serverTimestamp(),
         "playersName": players,
         "isAllocated": isAllocate,
         "gameType": "Single",
@@ -223,8 +223,8 @@ class FirebaseAllocationServices {
       await fireStore.runTransaction((transaction) async {
         final time = DateTime.now().millisecondsSinceEpoch.toString();
         DateTime now = DateTime.now();
-        DateTime currentDay =
-            DateTime(now.year, now.month, now.day, 23, 59, 59);
+        // DateTime currentDay =
+        //     DateTime(now.year, now.month, now.day, 23, 59, 59);
 
         AllocationModel allocationModel = AllocationModel(
           id: time,
@@ -236,7 +236,6 @@ class FirebaseAllocationServices {
           startTime: startTime,
           endTime: endTime,
           totalTime: totalTime,
-          date: Timestamp.fromDate(currentDay),
         );
 
         DocumentReference allocationRef = fireStore
@@ -300,7 +299,6 @@ class FirebaseAllocationServices {
               startTime: startTime,
               endTime: endTime,
               totalTime: totalTime,
-              date: Timestamp.fromDate(currentDay),
             );
 
             DocumentReference loserDocRef = fireStore
@@ -321,7 +319,7 @@ class FirebaseAllocationServices {
             payedAmount: int.parse(payedAmount),
             paymentMethod: "Cash",
             status: "Payed",
-            date: Timestamp.fromDate(currentDay),
+            tableNumber: cancelAndUpdateAllocationModel.tableNumber,
           );
 
           DocumentReference saleRef = fireStore
@@ -352,34 +350,32 @@ class FirebaseAllocationServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      // Get the current date
-      DateTime now = DateTime.now();
-      DateTime startDate;
-      DateTime endDate =
-          DateTime(now.year, now.month, now.day, 23, 59, 59); // End of today
 
+      DateTime now = DateTime.now().toUtc();
+
+      DateTime startDate;
+      DateTime endDate;
+
+      // ================= DAILY =================
       if (dateRange == "Daily") {
-        QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
-            .collection("AllocationManagement")
-            .doc(uId)
-            .collection("AllocationDetails")
-            .where("date", isEqualTo: Timestamp.fromDate(endDate))
-            .orderBy("id", descending: true)
-            .get();
-        List<AllocationModel> allocationsList = snapshot.docs
-            .map((doc) => AllocationModel.fromJson(doc.data()))
-            .toList();
-        return allocationsList;
-      } else if (dateRange == "Weekly") {
-        startDate =
-            now.subtract(const Duration(days: 6)); // 7 days back from today
-      } else if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
+        startDate = DateTime.utc(now.year, now.month, now.day);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
+      }
+
+      // ================= WEEKLY =================
+      else if (dateRange == "Weekly") {
+        startDate = now.subtract(const Duration(days: 6));
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
+      }
+
+      // ================= MONTHLY =================
+      else if (dateRange == "Monthly") {
+        startDate = DateTime(now.year, now.month - 1, now.day);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else {
-        // If the condition doesn't match, return an empty list
         return [];
       }
-      // Fetching the snapshot of the Firestore query
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection("AllocationManagement")
           .doc(uId)
@@ -388,11 +384,10 @@ class FirebaseAllocationServices {
           .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy("id", descending: true)
           .get();
-      // Converting snapshot documents to a list of maps
-      List<AllocationModel> allocationsList = snapshot.docs
+
+      return snapshot.docs
           .map((doc) => AllocationModel.fromJson(doc.data()))
           .toList();
-      return allocationsList;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
     } on FirebaseException {
@@ -412,35 +407,24 @@ class FirebaseAllocationServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      // Get the current date
-      DateTime now = DateTime.now();
+
+      DateTime now = DateTime.now().toUtc();
       DateTime startDate;
-      DateTime endDate =
-          DateTime(now.year, now.month, now.day, 23, 59, 59); // End of today
+      DateTime endDate;
 
       if (dateRange == "Daily") {
-        QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
-            .collection("AllocationManagement")
-            .doc(uId)
-            .collection("AllocationDetails")
-            .where("tableNumber", isEqualTo: tableNumber)
-            .where("date", isEqualTo: Timestamp.fromDate(endDate))
-            .orderBy("id", descending: true)
-            .get();
-        List<AllocationModel> allocationsList = snapshot.docs
-            .map((doc) => AllocationModel.fromJson(doc.data()))
-            .toList();
-        return allocationsList;
+        startDate = DateTime.utc(now.year, now.month, now.day);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Weekly") {
-        startDate =
-            now.subtract(const Duration(days: 6)); // 7 days back from today
+        startDate = now.subtract(const Duration(days: 6)); // 7 days back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Monthly") {
         startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else {
-        // If the condition doesn't match, return an empty list
         return [];
       }
-      // Fetching the snapshot of the Firestore query
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection("AllocationManagement")
           .doc(uId)
@@ -450,10 +434,11 @@ class FirebaseAllocationServices {
           .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy("id", descending: true)
           .get();
-      // Converting snapshot documents to a list of maps
+
       List<AllocationModel> allocationsList = snapshot.docs
           .map((doc) => AllocationModel.fromJson(doc.data()))
           .toList();
+
       return allocationsList;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
@@ -466,3 +451,4 @@ class FirebaseAllocationServices {
     }
   }
 }
+//m

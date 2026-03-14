@@ -37,11 +37,11 @@ class FirebaseEmployeeServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      const ext = 'jpg';
-      final ref = storage.ref().child('EmployeeImages/$time.$ext');
+      // const ext = 'jpg';
+      // final ref = storage.ref().child('EmployeeImages/$time.$ext');
 
-      TaskSnapshot snapshot = await ref.putData(employeeImage);
-      String imageUrl = await snapshot.ref.getDownloadURL();
+      //TaskSnapshot snapshot = await ref.putData(employeeImage);
+      //String imageUrl = await snapshot.ref.getDownloadURL();
 
       EmployeeModel employeeDetailModel = EmployeeModel(
           userId: uId,
@@ -52,7 +52,8 @@ class FirebaseEmployeeServices {
           employeeContact: employeeContact,
           employeeAddress: employeeAddress,
           shift: shift,
-          image: imageUrl);
+          image: "" //imageUrl
+          );
 
       await fireStore
           .collection('EmployeeManagement')
@@ -172,28 +173,28 @@ class FirebaseEmployeeServices {
         throw "No internet connection. Please check your network.";
       }
       final time = DateTime.now().millisecondsSinceEpoch.toString();
-      const ext = 'jpg';
-      final ref = storage.ref().child('EmployeeImages/$time.$ext');
-      await ref.putData(empImage).then((TaskSnapshot snapshot) async {
-        String imageUrl = await snapshot.ref.getDownloadURL();
+      // const ext = 'jpg';
+      // final ref = storage.ref().child('EmployeeImages/$time.$ext');
+      // await ref.putData(empImage).then((TaskSnapshot snapshot) async {
+      //  String imageUrl = await snapshot.ref.getDownloadURL();
 
-        await fireStore
-            .collection('EmployeeManagement')
-            .doc(uId)
-            .collection("EmployeesDetail")
-            .doc(id)
-            .update({
-          'employeeName': empName,
-          'employeeNic': empNic,
-          'employeeType': empType,
-          'employeeContact': empContact,
-          'employeeAddress': empAddress,
-          'shift': shift,
-          'image': imageUrl
-        }).timeout(const Duration(seconds: 180), onTimeout: () {
-          throw "Update timed out. Please check your network and try again.";
-        });
+      await fireStore
+          .collection('EmployeeManagement')
+          .doc(uId)
+          .collection("EmployeesDetail")
+          .doc(id)
+          .update({
+        'employeeName': empName,
+        'employeeNic': empNic,
+        'employeeType': empType,
+        'employeeContact': empContact,
+        'employeeAddress': empAddress,
+        'shift': shift,
+        'image': "", //imageUrl
+      }).timeout(const Duration(seconds: 180), onTimeout: () {
+        throw "Update timed out. Please check your network and try again.";
       });
+      // });
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
     } on FirebaseException {

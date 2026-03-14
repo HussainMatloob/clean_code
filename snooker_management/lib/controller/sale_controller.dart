@@ -10,13 +10,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snooker_management/models/TemporaryLoosersModel.dart';
 import 'package:snooker_management/models/table_details_model.dart';
 import 'package:snooker_management/models/table_sales_model.dart';
+import 'package:snooker_management/services/pdf_services/sale_pdf_service.dart';
 import 'package:snooker_management/services/sale_services.dart';
 import 'package:snooker_management/utils/flush_messages_util.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:snooker_management/utils/helper/dialog_helper.dart';
 import 'package:snooker_management/utils/helper/internet_checker_helper.dart';
 import '../constants/images_constant.dart';
-import '../views/screens/sale_management/sales_pdf_preview.dart';
 
 class SaleController extends GetxController {
   GlobalKey<FormState> fieldsKey = GlobalKey<FormState>();
@@ -323,6 +323,7 @@ class SaleController extends GetxController {
         if (salesDetail.isNotEmpty) {
           salesReportGenerator(context, salesDetail);
         } else {
+          EasyLoading.dismiss();
           DialogHelper.showNoticeDialog(
               context, "There are currently no sale records available");
         }
@@ -336,118 +337,53 @@ class SaleController extends GetxController {
           salesReportGenerator(context, salesDetail);
         } else {
           if (!context.mounted) return;
+          EasyLoading.dismiss();
           DialogHelper.showNoticeDialog(
               context, "There are currently no sale records available");
         }
       } else {
         if (!context.mounted) return;
+        EasyLoading.dismiss();
         DialogHelper.showAttentionDialog(
             context, "Please select a report option to continue");
       }
     } catch (e) {
+      EasyLoading.dismiss();
       if (!context.mounted) return;
       DialogHelper.showExceptionErrorDialog(context, "$e");
-    } finally {
-      EasyLoading.dismiss();
     }
   }
 
-  int totalPages = 1;
-  int currentPage = 1;
   String? snookerName;
   Uint8List? image;
-  List<List<TableSalesModel>> allPages = [];
-  void resetPdfCurrentPage() {
-    currentPage = 1;
-    update();
-  }
 
-  Future<Map<String, dynamic>> generatePdf(
-      BuildContext context, List<TableSalesModel> salesList) async {
-    final pdf = pw.Document();
-    const pageFormat = PdfPageFormat.a4; // A4 page format
-    final pageHeight = pageFormat.height; // A4 page height
-    const margin = 20.0; // Margin space for top, bottom, left, and right
-    const headerHeight = 30.0; // Space for header (adjust as needed)
-    const contentHeight = 20.0; // Height of each row (adjust based on content)
-    double currentHeight = headerHeight; // Start with header height
-    List<List<TableSalesModel>> allPages = [];
-    List<TableSalesModel> currentPageTableSales = [];
-
-    for (var sales in salesList) {
-      // Check if adding this row will exceed available space (accounting for margins and header)
-      if (currentHeight + contentHeight > (pageHeight - margin * 2)) {
-        // If it exceeds, add the current page to allPages and start a new page
-        allPages.add(currentPageTableSales);
-        currentPageTableSales = [sales]; // Start with current row on next page
-        currentHeight = headerHeight +
-            contentHeight; // Reset height for new page (including header)
-      } else {
-        // If there's space, add the row to the current page
-        currentPageTableSales.add(sales);
-        currentHeight += contentHeight; // Add row height to the current height
-      }
-    }
-
-    // Add remaining rows to the last page if any
-    if (currentPageTableSales.isNotEmpty) {
-      allPages.add(currentPageTableSales);
-    }
-
-    totalPages = allPages.length;
-
-    // Return the generated PDF document, total pages, and paginated data
-    return {'pdf': pdf, 'totalPages': totalPages, 'allPages': allPages};
-  }
-
-  void salesReportGenerator(
-      BuildContext context, List<TableSalesModel> tableSalesModel) async {
-    final result = await generatePdf(context, tableSalesModel);
-    final pdf = result['pdf'] as pw.Document;
-    totalPages = result['totalPages'] as int;
-    allPages = result['allPages'] as List<List<TableSalesModel>>;
+  Uint8List? pdfBytes;
+  Future<void> salesReportGenerator(
+      BuildContext context, List<TableSalesModel> sales) async {
+    /// LOAD LOGO
     image =
         (await rootBundle.load(ImageConstant.tableLogo)).buffer.asUint8List();
 
+    /// LOAD CLUB NAME
     SharedPreferences sp = await SharedPreferences.getInstance();
     snookerName = sp.getString('clubName') ?? "";
+    update();
 
+    /// ⭐ GENERATE PDF
+    try {
+      pdfBytes = await SalesPdfService.generatePdf(
+        sales: sales,
+        snookerName: snookerName ?? "",
+        image: image,
+      );
+    } catch (e) {
+      debugPrint("$e");
+    }
+
+    EasyLoading.dismiss();
+
+    update();
     if (!context.mounted) return;
     context.go('/app/salesPdfPreviewPages');
-  }
-
-  void goToFirstPage() {
-    if (currentPage != 1) {
-      currentPage = 1;
-      update();
-    }
-  }
-
-  void goToPreviousPage() {
-    if (currentPage > 1) {
-      currentPage--;
-      update();
-    }
-  }
-
-  void goToNextPage(int totalPages) {
-    if (currentPage < totalPages) {
-      currentPage++;
-      update();
-    }
-  }
-
-  void goToLastPage(int totalPages) {
-    if (currentPage != totalPages) {
-      currentPage = totalPages;
-      update();
-    }
-  }
-
-  void goToPage(int pageNumber, int totalPages) {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      currentPage = pageNumber;
-      update();
-    }
   }
 }

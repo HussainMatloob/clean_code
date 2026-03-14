@@ -6,6 +6,7 @@ import 'package:snooker_management/constants/color_constants.dart';
 import 'package:snooker_management/constants/data_constant.dart';
 import 'package:snooker_management/controller/salary_controller.dart';
 import 'package:snooker_management/main.dart';
+import 'package:snooker_management/utils/date_time_utils.dart';
 import 'package:snooker_management/views/screens/salary_management/add_and_update_salary_dialog.dart';
 import 'package:snooker_management/views/widgets/custom_alart_dialog.dart';
 import 'package:snooker_management/views/widgets/custom_button_widget.dart';
@@ -136,7 +137,6 @@ class _SearchSalaryScreenState extends State<SearchSalaryScreen> {
                     CustomButtonWidget(
                       sizedBoxWidth: 10.w,
                       tabAction: () async {
-                        salaryController.resetPdfCurrentPage();
                         salaryController.generateSalaryReport(context);
                       },
                       buttonColor: ColorConstant.blueColor,
@@ -252,7 +252,7 @@ class _SearchSalaryScreenState extends State<SearchSalaryScreen> {
                               (salaryController.searchedSalary!.shift
                                   .toString());
                           salaryController.dateController.text =
-                              salaryController.formatDate(
+                              DateTimeUtils.formatDate(
                                   (salaryController.searchedSalary!.date!));
 
                           AddAndUpdateSalaryDialog.showCustomDialog(
@@ -305,7 +305,7 @@ class _SearchSalaryScreenState extends State<SearchSalaryScreen> {
                                     color: ColorConstant.blackColor,
                                   ),
                                   CustomText(
-                                    salaryController.formatDate(
+                                    DateTimeUtils.formatDate(
                                         salaryController.searchedSalary!.date!),
                                     fw: FontWeight.w400,
                                     size: 11.sp,

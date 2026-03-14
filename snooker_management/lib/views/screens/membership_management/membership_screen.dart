@@ -209,7 +209,6 @@ class _MembershipScreenState extends State<MembershipScreen> {
                               CustomButtonWidget(
                                 sizedBoxWidth: 10.w,
                                 tabAction: () async {
-                                  memberController.resetPdfCurrentPage();
                                   memberController.generateMembersPdf(context);
                                 },
                                 buttonColor: ColorConstant.blueColor,
@@ -337,7 +336,6 @@ class _MembershipScreenState extends State<MembershipScreen> {
                                   CustomButtonWidget(
                                     sizedBoxWidth: 10.w,
                                     tabAction: () async {
-                                      memberController.resetPdfCurrentPage();
                                       memberController
                                           .generateMembersPdf(context);
                                     },

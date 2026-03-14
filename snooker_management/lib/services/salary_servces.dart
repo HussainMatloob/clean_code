@@ -30,7 +30,7 @@ class FirebaseSalaryServices {
           .doc(uId)
           .collection("EmployeesDetail")
           .get();
-// Converting snapshot documents to a list of maps
+      // Converting snapshot documents to a list of maps
       List<EmployeeModel> employeesList = snapshot.docs
           .map((doc) => EmployeeModel.fromJson(doc.data()))
           .toList();
@@ -56,7 +56,11 @@ class FirebaseSalaryServices {
       }
       DateFormat dateFormat = DateFormat('dd-MM-yyyy');
       // Parse the string into a DateTime object
-      DateTime formatBillDate = dateFormat.parse(date);
+      DateTime parsedStart = dateFormat.parse(date);
+
+      DateTime formatSalaryDate =
+          DateTime.utc(parsedStart.year, parsedStart.month, parsedStart.day);
+
       final time = DateTime.now().millisecondsSinceEpoch.toString();
       final salaryModel = SalaryModel(
         userId: uId,
@@ -64,7 +68,7 @@ class FirebaseSalaryServices {
         employeeName: employeeName,
         employeeSalary: double.parse(salary),
         shift: shift,
-        date: Timestamp.fromDate(formatBillDate),
+        date: Timestamp.fromDate(formatSalaryDate),
       );
       return await fireStore
           .collection('SalaryManagement')
@@ -101,7 +105,10 @@ class FirebaseSalaryServices {
       }
       DateFormat dateFormat = DateFormat('dd-MM-yyyy');
       // Parse the string into a DateTime object
-      DateTime formatBillDate = dateFormat.parse(date);
+      DateTime parsedStart = dateFormat.parse(date);
+
+      DateTime formatSalaryDate =
+          DateTime.utc(parsedStart.year, parsedStart.month, parsedStart.day);
       await fireStore
           .collection('SalaryManagement')
           .doc(uId)
@@ -111,7 +118,7 @@ class FirebaseSalaryServices {
         'employeeName': employeeName,
         'employeeSalary': double.parse(salary),
         'shift': shift,
-        'date': Timestamp.fromDate(formatBillDate),
+        'date': Timestamp.fromDate(formatSalaryDate),
       }).timeout(const Duration(seconds: 180), onTimeout: () {
         throw "Connection timed out. Please check your internet and try again.";
       });
@@ -174,26 +181,37 @@ class FirebaseSalaryServices {
   /*                              search Salary                               */
   /*--------------------------------------------------------------------------*/
   static Future<SalaryModel?> searchSalary(
-      BuildContext context, String date, String expenseName) async {
+      BuildContext context, String date, String employeeName) async {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
+
       DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      // Parse the string into a DateTime object
-      DateTime formatedDate = dateFormat.parse(date);
+
+      // Parse date
+      DateTime parsedDate = dateFormat.parse(date);
+
+      // Create day range in UTC
+      DateTime startDate =
+          DateTime.utc(parsedDate.year, parsedDate.month, parsedDate.day);
+
+      DateTime endDate = DateTime.utc(
+          parsedDate.year, parsedDate.month, parsedDate.day, 23, 59, 59);
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('SalaryManagement')
           .doc(uId)
           .collection("SalaryDetails")
-          .where("date", isEqualTo: Timestamp.fromDate(formatedDate))
-          .where("employeeName", isEqualTo: expenseName)
+          .where("employeeName", isEqualTo: employeeName)
+          .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .limit(1)
           .get();
 
       if (snapshot.docs.isNotEmpty) {
         return SalaryModel.fromJson(snapshot.docs.first.data());
       }
-      // If no match is found, return null
+
       return null;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
@@ -207,40 +225,38 @@ class FirebaseSalaryServices {
   }
 
   /*--------------------------------------------------------------------------*/
-  /*                  generate Salary report monthly,yearly                 */
+  /*                  generate Salary report monthly,yearly                    */
   /*--------------------------------------------------------------------------*/
   static Future<List<SalaryModel>> generateSalaryInDateRange(
       BuildContext context, String dateRange) async {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      // Get the current date
-      DateTime now = DateTime.now();
-      DateTime startDate;
-      DateTime endDate =
-          DateTime(now.year, now.month, now.day, 23, 59, 59); // End of today
 
-      // Calculate the start date based on the condition
+      DateTime now = DateTime.now().toUtc();
+      DateTime startDate;
+      DateTime endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
+
       if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
+        startDate = DateTime(now.year, now.month - 1, now.day);
       } else if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
+        startDate = DateTime(now.year - 1, now.month, now.day);
       } else {
-        // If the condition doesn't match, return an empty list
         return [];
       }
-      // Fetching the snapshot of the Firestore query
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('SalaryManagement')
           .doc(uId)
           .collection("SalaryDetails")
           .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .orderBy("id", descending: true)
+          .orderBy("date", descending: true)
           .get();
-      // Converting snapshot documents to a list of maps
+
       List<SalaryModel> salaryList =
           snapshot.docs.map((doc) => SalaryModel.fromJson(doc.data())).toList();
+
       return salaryList;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
@@ -261,31 +277,30 @@ class FirebaseSalaryServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      // Get the current date
-      DateTime now = DateTime.now();
+
+      DateTime now = DateTime.now().toUtc();
       DateTime startDate;
-      DateTime endDate =
-          DateTime(now.year, now.month, now.day, 23, 59, 59); // End of today
+      DateTime endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
 
       if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
+        startDate = DateTime.utc(now.year - 1, now.month, now.day);
       } else {
-        // If the condition doesn't match, return an empty list
         return [];
       }
-      // Fetching the snapshot of the Firestore query
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('SalaryManagement')
           .doc(uId)
           .collection("SalaryDetails")
+          .where("employeeName", isEqualTo: employeeName)
           .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .where("employeeName", isEqualTo: employeeName)
-          .orderBy("id", descending: true)
+          .orderBy("date", descending: true)
           .get();
-      // Converting snapshot documents to a list of maps
+
       List<SalaryModel> salaryList =
           snapshot.docs.map((doc) => SalaryModel.fromJson(doc.data())).toList();
+
       return salaryList;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
@@ -307,7 +322,7 @@ class FirebaseSalaryServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      // Map month names to their respective numbers
+
       Map<String, int> monthMap = {
         "January": 1,
         "February": 2,
@@ -323,42 +338,35 @@ class FirebaseSalaryServices {
         "December": 12,
       };
 
-      // Validate the input month name
       if (!monthMap.containsKey(monthName)) {
         throw Exception("Invalid month name: $monthName");
       }
 
-      // Get the current date
-      DateTime now = DateTime.now();
+      DateTime now = DateTime.now().toUtc();
       int targetMonth = monthMap[monthName]!;
 
-      // Calculate the start and end dates for the specified month
       DateTime startDate;
       DateTime endDate;
 
       if (targetMonth <= now.month) {
-        // The specified month is in the current year
-        startDate = DateTime(now.year, targetMonth, 1);
-        endDate =
-            DateTime(now.year, targetMonth + 1, 0, 23, 59, 59); // End of month
+        startDate = DateTime.utc(now.year, targetMonth, 1);
+        endDate = DateTime.utc(now.year, targetMonth + 1, 1)
+            .subtract(const Duration(seconds: 1));
       } else {
-        // The specified month is in the previous year
-        startDate = DateTime(now.year - 1, targetMonth, 1);
-        endDate = DateTime(
-            now.year - 1, targetMonth + 1, 0, 23, 59, 59); // End of month
+        startDate = DateTime.utc(now.year - 1, targetMonth, 1);
+        endDate = DateTime.utc(now.year - 1, targetMonth + 1, 1)
+            .subtract(const Duration(seconds: 1));
       }
 
-      // Fetch data for the specified month range
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('SalaryManagement')
           .doc(uId)
           .collection("SalaryDetails")
           .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .orderBy("id", descending: true) // Ensure proper indexing
+          .orderBy("date", descending: true)
           .get();
 
-      // Convert snapshot to a list of SalaryModel
       List<SalaryModel> salaryList =
           snapshot.docs.map((doc) => SalaryModel.fromJson(doc.data())).toList();
 

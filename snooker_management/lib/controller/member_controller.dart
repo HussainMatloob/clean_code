@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -19,11 +20,10 @@ import 'package:snooker_management/models/member_model.dart';
 import 'package:snooker_management/models/package_model.dart';
 import 'package:snooker_management/services/membership_services.dart';
 import 'package:snooker_management/services/package_services.dart';
+import 'package:snooker_management/services/pdf_services/member_pdf_service.dart';
 import 'package:snooker_management/utils/flush_messages_util.dart';
 import 'package:snooker_management/utils/helper/dialog_helper.dart';
 import 'package:snooker_management/utils/helper/internet_checker_helper.dart';
-import 'package:snooker_management/views/screens/membership_management/member_billing/billing_pdf_preview.dart';
-import 'package:snooker_management/views/screens/membership_management/members_pdf_preview.dart';
 
 class MemberController extends GetxController {
   TextEditingController searchController = TextEditingController();
@@ -57,7 +57,6 @@ class MemberController extends GetxController {
   List<MemberModel> membersList = [];
   String? selectedPackageName;
   String? selectedCustomName;
-  typed_data.Uint8List? newImage;
 
   String? selectedBillingReportOption;
   String? selectedMemberReportOption;
@@ -278,44 +277,24 @@ class MemberController extends GetxController {
     update();
   }
 
+  typed_data.Uint8List? newImage;
+
   Future<void> imagePicker() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-        withData: true, // important
+      final ImagePicker picker = ImagePicker();
+
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery, //  only gallery
       );
 
-      if (result != null) {
-        if (kIsWeb) {
-          // Web
-          newImage = result.files.single.bytes;
-        } else {
-          // Android / iOS
-          File file = File(result.files.single.path!);
-          newImage = await file.readAsBytes();
-        }
+      if (image != null) {
+        newImage = await image.readAsBytes();
         update();
       }
     } catch (e) {
       print("Error picking image: $e");
     }
   }
-
-  // Future<void> imagePicker() async {
-  //   try {
-  //     FilePickerResult? result = await FilePicker.platform.pickFiles(
-  //       type: FileType.image,
-  //       allowMultiple: false,
-  //     );
-  //     if (result != null && result.files.single.bytes != null) {
-  //       typed_data.Uint8List imageBytes = result.files.single.bytes!;
-  //       pickImage(imageBytes);
-  //     }
-  //   } catch (e) {
-  //     print("Error picking image: $e");
-  //   }
-  // }
 
   /*--------------------------------------------------------------------------*/
   /*                                search member                             */
@@ -739,113 +718,50 @@ class MemberController extends GetxController {
   /*                      generate member report logic                        */
   /*--------------------------------------------------------------------------*/
 
-  int totalPages = 1;
-  int currentPage = 1;
   String? snookerName;
   Uint8List? image;
-  List<List<dynamic>> allPages = [];
 
-  void resetPdfCurrentPage() {
-    currentPage = 1;
-    update();
-  }
-
-  // Generate PDF dynamically, checking space per page
-  Future<Map<String, dynamic>> generatePdf(
-      BuildContext context, List<dynamic> membersOrBillingList) async {
-    final pdf = pw.Document();
-    const pageFormat = PdfPageFormat.a4; // A4 page format
-    final pageHeight = pageFormat.height; // A4 page height
-    const margin = 20.0; // Margin space for top, bottom, left, and right
-    const headerHeight = 30.0; // Space for header (adjust as needed)
-    const contentHeight = 20.0; // Height of each row (adjust based on content)
-    double currentHeight = headerHeight; // Start with header height
-    List<List<dynamic>> allPages = [];
-    List<dynamic> currentPagemembers = [];
-
-    for (var members in membersOrBillingList) {
-      // Check if adding this row will exceed available space (accounting for margins and header)
-      if (currentHeight + contentHeight > (pageHeight - margin * 2)) {
-        // If it exceeds, add the current page to allPages and start a new page
-        allPages.add(currentPagemembers);
-        currentPagemembers = [members]; // Start with current row on next page
-        currentHeight = headerHeight +
-            contentHeight; // Reset height for new page (including header)
-      } else {
-        // If there's space, add the row to the current page
-        currentPagemembers.add(members);
-        currentHeight += contentHeight; // Add row height to the current height
-      }
-    }
-
-    // Add remaining rows to the last page if any
-    if (currentPagemembers.isNotEmpty) {
-      allPages.add(currentPagemembers);
-    }
-
-    totalPages = allPages.length;
-
-    // Return the generated PDF document, total pages, and paginated data
-    return {'pdf': pdf, 'totalPages': totalPages, 'allPages': allPages};
-  }
-
-  void memberReportGenerator(BuildContext context,
-      List<dynamic> memberOrBillModel, bool isMemberBill) async {
-    final result = await generatePdf(context, memberOrBillModel);
-    final pdf = result['pdf'] as pw.Document;
-    totalPages = result['totalPages'] as int;
-    allPages = result['allPages'] as List<List<dynamic>>;
+  Uint8List? membersPdfBytes;
+  Uint8List? billingMembersPdfBytes;
+  Future<void> memberReportGenerator(BuildContext context,
+      List<dynamic> membersOrBillingList, bool isMemberBill) async {
+    /// LOAD LOGO
     image =
         (await rootBundle.load(ImageConstant.tableLogo)).buffer.asUint8List();
 
+    /// LOAD CLUB NAME
     SharedPreferences sp = await SharedPreferences.getInstance();
     snookerName = sp.getString('clubName') ?? "";
+    update();
+
+    /// ⭐ GENERATE PDF
+    if (isMemberBill) {
+      // otherExpensepdfBytes = await  MemberBillingPdfService.generatePdf(
+      //    memberBills:  memberBills,
+      //   snookerName: snookerName ?? "",
+      //   image: image,
+      // );
+    } else {
+      try {
+        membersPdfBytes = await MemberPdfServices.generatePdf(
+          members: membersOrBillingList,
+          snookerName: snookerName ?? "",
+          image: image,
+        );
+      } catch (e) {
+        print("Data=======__----------------- $e");
+      }
+    }
+
+    EasyLoading.dismiss();
+    update();
 
     if (isMemberBill) {
-      // Get.to(() => MemberBillingPdfPreviewPage(
-      //       snookerName: snookerName,
-      //       image: image,
-      //       totalPages: totalPages,
-      //       allPages: allPages,
-      //     ));
+      // if (!context.mounted) return;
+      // context.go('/app/memberBillsExpensePdf');
     } else {
       if (!context.mounted) return;
       context.go("/app/membershipPdf");
-    }
-  }
-
-  void goToFirstPage() {
-    if (currentPage != 1) {
-      currentPage = 1;
-      update();
-    }
-  }
-
-  void goToPreviousPage() {
-    if (currentPage > 1) {
-      currentPage--;
-      update();
-    }
-  }
-
-  void goToNextPage(int totalPages) {
-    if (currentPage < totalPages) {
-      currentPage++;
-      update();
-    }
-  }
-
-  void goToLastPage(int totalPages) {
-    if (currentPage != totalPages) {
-      currentPage = totalPages;
-      update();
-    }
-  }
-
-  void goToPage(int pageNumber, int totalPages) {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      currentPage = pageNumber;
-      update();
     }
   }
 
@@ -859,12 +775,13 @@ class MemberController extends GetxController {
         List<MemberModel> activatedMembersList =
             await FirebaseMembershipServices.generateActivatedMembersReport(
                 context);
-        EasyLoading.dismiss();
+
         List<MemberModel> memberModel = activatedMembersList;
         if (memberModel.isNotEmpty) {
           memberReportGenerator(context, memberModel, false);
         } else {
           if (!context.mounted) return;
+          EasyLoading.dismiss();
           DialogHelper.showNoticeDialog(context,
               "There are currently no activated member records available");
         }
@@ -873,12 +790,14 @@ class MemberController extends GetxController {
         List<MemberModel> expireMembers =
             await FirebaseMembershipServices.generateExpireMembersReport(
                 context);
-        EasyLoading.dismiss();
+
         List<MemberModel> memberModel = expireMembers;
         if (memberModel.isNotEmpty) {
+          if (!context.mounted) return;
           memberReportGenerator(context, memberModel, false);
         } else {
           if (!context.mounted) return;
+          EasyLoading.dismiss();
           DialogHelper.showNoticeDialog(context,
               "There are currently no expire member records available");
         }
@@ -886,12 +805,14 @@ class MemberController extends GetxController {
         FlushMessagesUtil.easyLoading();
         List<MemberModel> totalMembers =
             await FirebaseMembershipServices.generateMemberReport(context);
-        EasyLoading.dismiss();
+
         List<MemberModel> memberModel = totalMembers;
         if (memberModel.isNotEmpty) {
+          if (!context.mounted) return;
           memberReportGenerator(context, memberModel, false);
         } else {
           if (!context.mounted) return;
+          EasyLoading.dismiss();
           DialogHelper.showNoticeDialog(
               context, "There are currently no member records available");
         }
@@ -900,8 +821,6 @@ class MemberController extends GetxController {
       EasyLoading.dismiss();
       if (!context.mounted) return;
       DialogHelper.showExceptionErrorDialog(context, "$e");
-    } finally {
-      EasyLoading.dismiss();
     }
   }
 
@@ -914,11 +833,11 @@ class MemberController extends GetxController {
       await FirebaseMembershipServices.generateMembersBillReportByName(
               context, selectedCustomName!)
           .then((value) {
-        EasyLoading.dismiss();
         List<MemberBillingModel> memberBillingModel = value;
         if (memberBillingModel.isNotEmpty) {
           memberReportGenerator(context, memberBillingModel, true);
         } else {
+          EasyLoading.dismiss();
           FlushMessagesUtil.snackBarMessage(
               "error", "There is no any Member Bill record exist", context);
         }
@@ -928,11 +847,11 @@ class MemberController extends GetxController {
       await FirebaseMembershipServices.generateMembersBillInDateRange(
               context, selectedBillingReportOption!)
           .then((value) {
-        EasyLoading.dismiss();
         List<MemberBillingModel> memberBillingModel = value;
         if (memberBillingModel.isNotEmpty) {
           memberReportGenerator(context, memberBillingModel, true);
         } else {
+          EasyLoading.dismiss();
           FlushMessagesUtil.snackBarMessage(
               "error", "There is no any Member Bill record exist", context);
         }
@@ -941,11 +860,11 @@ class MemberController extends GetxController {
       FlushMessagesUtil.easyLoading();
       await FirebaseMembershipServices.generateMembersBillReport(context)
           .then((value) {
-        EasyLoading.dismiss();
         List<MemberBillingModel> memberBillingModel = value;
         if (memberBillingModel.isNotEmpty) {
           memberReportGenerator(context, memberBillingModel, true);
         } else {
+          EasyLoading.dismiss();
           FlushMessagesUtil.snackBarMessage(
               "error", "There is no any Member Bill record exist", context);
         }

@@ -6,7 +6,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snooker_management/constants/images_constant.dart';
 import 'package:snooker_management/models/allocation_model.dart';
@@ -14,8 +14,8 @@ import 'package:snooker_management/models/cancel_update_allocation_model.dart';
 import 'package:snooker_management/models/member_model.dart';
 import 'package:snooker_management/models/table_details_model.dart';
 import 'package:snooker_management/services/allocation_services.dart';
+import 'package:snooker_management/services/pdf_services/allocation_pdf_service.dart';
 import 'package:snooker_management/utils/flush_messages_util.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:snooker_management/utils/helper/dialog_helper.dart';
 import 'package:snooker_management/utils/helper/internet_checker_helper.dart';
 
@@ -40,25 +40,6 @@ class AllocationController extends GetxController {
   List<String> tablesNumberList = [];
   double totalAmount = 0.0;
   String? useruid;
-
-  String formatDate(Timestamp timestamp) {
-    // Convert Timestamp to DateTime
-    DateTime dateTime = timestamp.toDate();
-
-    // Format DateTime to 'yyyy-MM-dd'
-    return DateFormat('dd-MM-yyyy').format(dateTime);
-  }
-
-  String getPlayersList(List<String>? playersName) {
-    // Join player names with a comma
-    String players = playersName!.join(", ");
-
-    // Truncate the list if it exceeds 16 characters
-    if (players.length > 50) {
-      return "${players.substring(0, 50)}...";
-    }
-    return players;
-  }
 
   void showOrHideReportOption() {
     isExpanded = !isExpanded;
@@ -472,6 +453,11 @@ class AllocationController extends GetxController {
     }
   }
 
+  String? snookerName;
+  Uint8List? image;
+
+  Uint8List? pdfBytes;
+
   /*--------------------------------------------------------------------------*/
   /*                       generate allocations report                        */
   /*--------------------------------------------------------------------------*/
@@ -486,12 +472,12 @@ class AllocationController extends GetxController {
                 selectedAllocationReportOption!,
                 selectedMonthOrTable!);
 
-        EasyLoading.dismiss();
         if (!context.mounted) return;
         List<AllocationModel> allocationDetails = allocationsList;
         if (allocationDetails.isNotEmpty) {
-          allocationReportGenerator(context, allocationDetails);
+          generateAllocationPdf(allocationDetails, context);
         } else {
+          EasyLoading.dismiss();
           DialogHelper.showNoticeDialog(
               context, "No allocations exist for the selected criteria");
         }
@@ -500,130 +486,51 @@ class AllocationController extends GetxController {
         List<AllocationModel> allocationsList =
             await FirebaseAllocationServices.generateAllocationReportInRange(
                 context, selectedAllocationReportOption!);
-        EasyLoading.dismiss();
+
         List<AllocationModel> allocationDetail = allocationsList;
         if (!context.mounted) return;
         if (allocationDetail.isNotEmpty) {
-          allocationReportGenerator(context, allocationDetail);
+          generateAllocationPdf(allocationDetail, context);
         } else {
+          EasyLoading.dismiss();
           DialogHelper.showNoticeDialog(
               context, "No allocations exist for the selected criteria");
         }
       } else {
+        EasyLoading.dismiss();
         DialogHelper.showAttentionDialog(
             context, "Please select a report option to continue");
       }
     } catch (e) {
-      EasyLoading.dismiss();
       if (!context.mounted) return;
       DialogHelper.showExceptionErrorDialog(context, "$e");
-    } finally {
       EasyLoading.dismiss();
+      update();
     }
   }
 
-  int totalPages = 1;
-  int currentPage = 1;
-  String? snookerName;
-  Uint8List? image;
-  List<List<AllocationModel>>? allPages;
-  void resetPdfCurrentPage() {
-    currentPage = 1;
-    update();
-  }
-
-  Future<Map<String, dynamic>> generatePdf(
-      BuildContext context, List<AllocationModel> allocationList) async {
-    final pdf = pw.Document();
-    const pageFormat = PdfPageFormat.a4; // A4 page format
-    final pageHeight = pageFormat.height; // A4 page height
-    const margin = 20.0; // Margin space for top, bottom, left, and right
-    const headerHeight = 30.0; // Space for header (adjust as needed)
-    const contentHeight = 20.0; // Height of each row (adjust based on content)
-    double currentHeight = headerHeight; // Start with header height
-    List<List<AllocationModel>> allPages = [];
-    List<AllocationModel> currentPageAllocations = [];
-
-    for (var allocations in allocationList) {
-      // Check if adding this row will exceed available space (accounting for margins and header)
-      if (currentHeight + contentHeight > (pageHeight - margin * 2)) {
-        // If it exceeds, add the current page to allPages and start a new page
-        allPages.add(currentPageAllocations);
-        currentPageAllocations = [
-          allocations
-        ]; // Start with current row on next page
-        currentHeight = headerHeight +
-            contentHeight; // Reset height for new page (including header)
-      } else {
-        // If there's space, add the row to the current page
-        currentPageAllocations.add(allocations);
-        currentHeight += contentHeight; // Add row height to the current height
-      }
-    }
-
-    // Add remaining rows to the last page if any
-    if (currentPageAllocations.isNotEmpty) {
-      allPages.add(currentPageAllocations);
-    }
-
-    totalPages = allPages.length;
-
-    // Return the generated PDF document, total pages, and paginated data
-    return {'pdf': pdf, 'totalPages': totalPages, 'allPages': allPages};
-  }
-
-  void allocationReportGenerator(
-      BuildContext context, List<AllocationModel> allocationsModel) async {
-    final result = await generatePdf(context, allocationsModel);
-
-    totalPages = result['totalPages'] as int;
-    allPages = result['allPages'] as List<List<AllocationModel>>;
-
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    snookerName = sp.getString('clubName') ?? "";
-
-    if (!context.mounted) return;
-
+  Future<void> generateAllocationPdf(
+      List<AllocationModel> allocations, BuildContext context) async {
+    /// LOAD LOGO
     image =
         (await rootBundle.load(ImageConstant.tableLogo)).buffer.asUint8List();
 
-    //  Navigate using GoRouter
+    /// LOAD CLUB NAME
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    snookerName = sp.getString('clubName') ?? "";
+    update();
+
+    /// ⭐ GENERATE PDF
+    pdfBytes = await AllocationPdfService.generatePdf(
+      allocations: allocations,
+      snookerName: snookerName ?? "",
+      image: image,
+    );
+
+    EasyLoading.dismiss();
+
+    update();
     if (!context.mounted) return;
     context.go('/app/allocationPdf');
-  }
-
-  void goToFirstPage() {
-    if (currentPage != 1) {
-      currentPage = 1;
-      update();
-    }
-  }
-
-  void goToPreviousPage() {
-    if (currentPage > 1) {
-      currentPage--;
-      update();
-    }
-  }
-
-  void goToNextPage(int totalPages) {
-    if (currentPage < totalPages) {
-      currentPage++;
-      update();
-    }
-  }
-
-  void goToLastPage(int totalPages) {
-    if (currentPage != totalPages) {
-      currentPage = totalPages;
-      update();
-    }
-  }
-
-  void goToPage(int pageNumber, int totalPages) {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      currentPage = pageNumber;
-      update();
-    }
   }
 }

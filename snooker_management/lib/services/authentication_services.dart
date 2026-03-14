@@ -204,27 +204,30 @@ class FirebaseAuthenticationServices {
       String uId = sp.getString('uId') ?? "";
       if (newLogo != null) {
         final time = DateTime.now().millisecondsSinceEpoch.toString();
-        const ext = 'jpg';
-        final ref = storage.ref().child('EmployeeImages/$time.$ext');
-        await ref.putData(newLogo).then((TaskSnapshot snapshot) async {
-          String logoUrl = await snapshot.ref.getDownloadURL();
+        // const ext = 'jpg';
+        // final ref = storage.ref().child('EmployeeImages/$time.$ext');
+        // await ref.putData(newLogo).then((TaskSnapshot snapshot) async
+        //{
+        //   String logoUrl = await snapshot.ref.getDownloadURL();
 
-          final querySnapshot = await fireStore
-              .collection('SnookerUsers')
-              .where("uId", isEqualTo: uId)
-              .get();
+        final querySnapshot = await fireStore
+            .collection('SnookerUsers')
+            .where("uId", isEqualTo: uId)
+            .get();
 
-          // Start a batch
-          final batch = fireStore.batch();
+        // Start a batch
+        final batch = fireStore.batch();
 
-          for (var doc in querySnapshot.docs) {
-            batch.update(doc.reference,
-                {"snookerLogo": logoUrl, "snookerName": snookerName});
-          }
+        for (var doc in querySnapshot.docs) {
+          batch.update(doc.reference, {
+            "snookerLogo": "", //logoUrl,
+            "snookerName": snookerName
+          });
+        }
 
-          // Commit the batch (atomic operation)
-          await batch.commit();
-        });
+        // Commit the batch (atomic operation)
+        await batch.commit();
+        // });
       } else {
         final querySnapshot = await fireStore
             .collection('SnookerUsers')

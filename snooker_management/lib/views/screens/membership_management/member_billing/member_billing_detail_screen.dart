@@ -110,7 +110,6 @@ class _MembersBillingDetailState extends State<MembersBillingDetail> {
                             CustomButtonWidget(
                               sizedBoxWidth: 10.w,
                               tabAction: () async {
-                                memberController.resetPdfCurrentPage();
                                 memberController
                                     .generateMembersBillPdf(context);
                               },

@@ -34,7 +34,6 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     return GetBuilder<AuthenticationController>(
       builder: (authenticationController) {
         return Scaffold(
-          appBar: AppBar(),
           backgroundColor: ColorConstant.secondaryColor,
           body: authenticationController.userPermissions == null
               ? Center(

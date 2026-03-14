@@ -7,6 +7,7 @@ import 'package:snooker_management/controller/salary_controller.dart';
 import 'package:snooker_management/main.dart';
 import 'package:snooker_management/models/salary_model.dart';
 import 'package:snooker_management/services/salary_servces.dart';
+import 'package:snooker_management/utils/date_time_utils.dart';
 import 'package:snooker_management/utils/helper/responsive_helper.dart';
 import 'package:snooker_management/views/screens/expense_management/expense_tale_row.dart';
 import 'package:snooker_management/views/screens/salary_management/add_and_update_salary_dialog.dart';
@@ -58,8 +59,7 @@ class _ExpensesTableViewState extends State<SalaryTableView> {
                                 salaryController.shiftController.text =
                                     salaryModel.shift.toString();
                                 salaryController.dateController.text =
-                                    salaryController
-                                        .formatDate(salaryModel.date!);
+                                    DateTimeUtils.formatDate(salaryModel.date!);
                                 AddAndUpdateSalaryDialog.showCustomDialog(
                                     isDataAddAble: false,
                                     context,
@@ -88,8 +88,8 @@ class _ExpensesTableViewState extends State<SalaryTableView> {
                                           color: ColorConstant.blackColor,
                                         ),
                                         CustomText(
-                                          salaryController
-                                              .formatDate(salaryModel.date!),
+                                          DateTimeUtils.formatDate(
+                                              salaryModel.date!),
                                           fw: FontWeight.w400,
                                           size: 11.sp,
                                           color: ColorConstant.blackColor,
@@ -175,8 +175,8 @@ class _ExpensesTableViewState extends State<SalaryTableView> {
                                   padding: 8.r,
                                 ),
                                 CustomTableCell(
-                                  text: salaryController
-                                      .formatDate(salaryModel.date!),
+                                  text: DateTimeUtils.formatDate(
+                                      salaryModel.date!),
                                   padding: 8.r,
                                 ),
                                 Row(
@@ -194,7 +194,7 @@ class _ExpensesTableViewState extends State<SalaryTableView> {
                                                   .shiftController.text =
                                               salaryModel.shift.toString();
                                           salaryController.dateController.text =
-                                              salaryController.formatDate(
+                                              DateTimeUtils.formatDate(
                                                   salaryModel.date!);
                                           AddAndUpdateSalaryDialog
                                               .showCustomDialog(
@@ -285,8 +285,8 @@ class _ExpensesTableViewState extends State<SalaryTableView> {
                         padding: 8.r,
                       ),
                       CustomTableCell(
-                        text: salaryController
-                            .formatDate(salaryController.searchedSalary!.date!),
+                        text: DateTimeUtils.formatDate(
+                            salaryController.searchedSalary!.date!),
                         padding: 8.r,
                       ),
 
@@ -307,9 +307,8 @@ class _ExpensesTableViewState extends State<SalaryTableView> {
                                     (salaryController.searchedSalary!.shift
                                         .toString());
                                 salaryController.dateController.text =
-                                    salaryController.formatDate(
-                                        (salaryController
-                                            .searchedSalary!.date!));
+                                    DateTimeUtils.formatDate((salaryController
+                                        .searchedSalary!.date!));
 
                                 AddAndUpdateSalaryDialog.showCustomDialog(
                                     isDataAddAble: false,

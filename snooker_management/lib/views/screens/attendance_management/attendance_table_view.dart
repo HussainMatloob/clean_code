@@ -6,6 +6,7 @@ import 'package:snooker_management/constants/color_constants.dart';
 import 'package:snooker_management/controller/attendance_controller.dart';
 import 'package:snooker_management/main.dart';
 import 'package:snooker_management/services/attendance_services.dart';
+import 'package:snooker_management/utils/date_time_utils.dart';
 import 'package:snooker_management/utils/flush_messages_util.dart';
 import 'package:snooker_management/utils/helper/dialog_helper.dart';
 import 'package:snooker_management/utils/helper/internet_checker_helper.dart';
@@ -72,7 +73,7 @@ class AttendanceTableView extends StatelessWidget {
                                             color: ColorConstant.blackColor,
                                           ),
                                           CustomText(
-                                            attendanceController.formatDate(
+                                            DateTimeUtils.formatDate(
                                                 attendanceController
                                                     .attendance![index].date!),
                                             fw: FontWeight.w400,
@@ -159,8 +160,8 @@ class AttendanceTableView extends StatelessWidget {
                                             padding: 8.r,
                                           ),
                                           CustomTableCell(
-                                            text: attendanceController
-                                                .formatDate(attendanceController
+                                            text: DateTimeUtils.formatDate(
+                                                attendanceController
                                                     .attendance![i].date!),
                                             padding: 8.r,
                                           ),

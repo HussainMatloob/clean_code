@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:snooker_management/constants/color_constants.dart';
 import 'package:snooker_management/controller/attendance_controller.dart';
 import 'package:snooker_management/main.dart';
+import 'package:snooker_management/utils/date_time_utils.dart';
 
 import 'package:snooker_management/views/widgets/custom_button_widget.dart';
 import 'package:snooker_management/views/widgets/custom_drop_down_button.dart';
@@ -312,7 +313,7 @@ class _SearchAttendanceScreenState extends State<SearchAttendanceScreen> {
                                                 .searchedAttendance?.date ==
                                             null
                                         ? ""
-                                        : attendanceController.formatDate(
+                                        : DateTimeUtils.formatDate(
                                             attendanceController
                                                 .searchedAttendance!.date!),
                                     fw: FontWeight.w400,

@@ -89,7 +89,6 @@ class _OtherExpensesScreenState extends State<OtherExpensesScreen> {
                               child: CustomButtonWidget(
                                 sizedBoxWidth: 10.w,
                                 tabAction: () async {
-                                  expensesController.resetPdfCurrentPage();
                                   expensesController
                                       .generateOtherExpensesReport(context);
                                 },
@@ -204,7 +203,6 @@ class _OtherExpensesScreenState extends State<OtherExpensesScreen> {
                               child: CustomButtonWidget(
                                 sizedBoxWidth: 10.w,
                                 tabAction: () async {
-                                  expensesController.resetPdfCurrentPage();
                                   expensesController
                                       .generateOtherExpensesReport(context);
                                 },
