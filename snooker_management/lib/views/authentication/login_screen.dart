@@ -155,11 +155,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                               onLogin: () {
                                                 authenticationController
                                                         .emailController.text =
-                                                    "hussain@gmail.com"; //"demo@gmail.com";
+                                                    "demo@gmail.com";
                                                 authenticationController
                                                         .passwordController
                                                         .text =
-                                                    "123456"; //"12345678";
+                                                    "12345678";
                                                 authenticationController
                                                     .loginFunction(context);
                                               },
@@ -199,10 +199,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                           onLogin: () {
                                             authenticationController
                                                     .emailController.text =
-                                                "hussain@gmail.com"; //"demo@gmail.com";
+                                                  "demo@gmail.com";
                                             authenticationController
                                                 .passwordController
-                                                .text = "123456"; //"12345678";
+                                                .text =  "12345678";
                                             authenticationController
                                                 .loginFunction(context);
                                           },
