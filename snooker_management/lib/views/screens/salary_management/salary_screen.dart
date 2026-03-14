@@ -215,7 +215,6 @@ class _SalaryScreenState extends State<SalaryScreen> {
                               CustomButtonWidget(
                                 sizedBoxWidth: 10.w,
                                 tabAction: () async {
-                                  salaryController.resetPdfCurrentPage();
                                   salaryController
                                       .generateSalaryReport(context);
                                 },

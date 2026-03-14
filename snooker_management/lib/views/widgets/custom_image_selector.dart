@@ -1,8 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 import 'package:get/get.dart';
-import 'package:snooker_management/constants/color_constants.dart';
+
 import '../../main.dart';
 
 class CustomImageSelector<T extends GetxController> extends StatefulWidget {
@@ -37,47 +38,43 @@ class _CustomImageSelectorState<T extends GetxController>
         // Cast controller to its specific type
         final typedController = imageController as dynamic;
         return InkWell(
-          onTap: () async {
-            if (typedController.imagePicker != null) {
-              await typedController.imagePicker(); // Call the method
-            } else {
-              print("Error: imagePicker is not defined in the controller.");
-            }
-          },
-          child: typedController.newImage == null && widget.image != null
-              ? CachedNetworkImage(
-                  height: widget.height,
-                  width: widget.width,
-                  imageUrl: widget.image!,
-                  fit: BoxFit.fill,
-                  placeholder: (context, url) => const Center(
-                    child:
-                        CircularProgressIndicator(), // Placeholder for loading
-                  ),
-                  errorWidget: (context, url, error) {
-                    return Icon(
-                      Icons.error,
-                      size: 30.sp,
-                      color: ColorConstant.greyColor,
-                    );
-                  },
-                )
-              : Container(
-                  height: widget.height,
-                  width: widget.width,
-                  decoration: BoxDecoration(
+            onTap: () async {
+              if (typedController.imagePicker != null) {
+                await typedController.imagePicker(); // Call the method
+              } else {}
+            },
+            child: typedController.newImage == null && widget.image != null
+                ? kIsWeb
+                    ? Image.network(
+                        widget.image!,
+                        height: widget.height,
+                        width: widget.width,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                              height: widget.height,
+                              width: widget.width,
+                              child:
+                                  Icon(Icons.broken_image, color: Colors.grey));
+                        },
+                      )
+                    : CachedNetworkImage(
+                        height: widget.height,
+                        width: widget.width,
+                        imageUrl: widget.image!,
+                        fit: BoxFit.cover,
+                      )
+                : Container(
+                    height: widget.height,
+                    width: widget.width,
                     color: widget.color,
-                  ),
-                  child: ClipRRect(
                     child: typedController.newImage == null
                         ? widget.icon
                         : Image.memory(
                             typedController.newImage!,
                             fit: BoxFit.cover,
                           ),
-                  ),
-                ),
-        );
+                  ));
       },
     );
   }

@@ -7,6 +7,7 @@ import 'package:snooker_management/controller/expenses_controller.dart';
 import 'package:snooker_management/main.dart';
 import 'package:snooker_management/models/other_expenses_model.dart';
 import 'package:snooker_management/services/expense_services.dart';
+import 'package:snooker_management/utils/date_time_utils.dart';
 import 'package:snooker_management/utils/helper/responsive_helper.dart';
 import 'package:snooker_management/views/screens/expense_management/other_expenses/add_and_update_other_expenses.dart';
 import 'package:snooker_management/views/screens/expense_management/other_expenses/other_expenses_table_row.dart';
@@ -47,8 +48,8 @@ class _OtherExpensesTableViewState extends State<OtherExpensesTableView> {
                       expensesController.expenseAmountController.text =
                           otherExpensesModel.otherExpenseAmount.toString();
                       expensesController.dateController.text =
-                          expensesController
-                              .formatDate(otherExpensesModel.expenseDate!);
+                          DateTimeUtils.formatDate(
+                              otherExpensesModel.expenseDate!);
                       AddAndUpdateOtherExpensesDialog.showCustomDialog(
                           isDataAddAble: false,
                           context,
@@ -76,7 +77,7 @@ class _OtherExpensesTableViewState extends State<OtherExpensesTableView> {
                                 color: ColorConstant.blackColor,
                               ),
                               CustomText(
-                                expensesController.formatDate(
+                                DateTimeUtils.formatDate(
                                     otherExpensesModel.expenseDate!),
                                 fw: FontWeight.w400,
                                 size: 11.sp,
@@ -159,8 +160,8 @@ class _OtherExpensesTableViewState extends State<OtherExpensesTableView> {
                         padding: 8.r,
                       ),
                       CustomTableCell(
-                        text: expensesController
-                            .formatDate(otherExpensesModel.expenseDate!),
+                        text: DateTimeUtils.formatDate(
+                            otherExpensesModel.expenseDate!),
                         padding: 8.r,
                       ),
                       Row(
@@ -178,7 +179,7 @@ class _OtherExpensesTableViewState extends State<OtherExpensesTableView> {
                                     otherExpensesModel.otherExpenseAmount
                                         .toString();
                                 expensesController.dateController.text =
-                                    expensesController.formatDate(
+                                    DateTimeUtils.formatDate(
                                         otherExpensesModel.expenseDate!);
                                 AddAndUpdateOtherExpensesDialog
                                     .showCustomDialog(

@@ -168,24 +168,23 @@ class FirebaseSaleServices {
       }
 
       final String time = DateTime.now().millisecondsSinceEpoch.toString();
-      DateTime now = DateTime.now();
-      DateTime currentDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      // DateTime now = DateTime.now();
+      // DateTime currentDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
       WriteBatch batch = fireStore.batch();
 
       if (isAddAll) {
         // Prepare model
         TableSalesModel tableSalesModel = TableSalesModel(
-          id: time,
-          userId: uId,
-          looserName: listLosers[0].looserName,
-          loosGames: totalLoseGames,
-          totalAmount: totalAmount,
-          payedAmount: int.parse(finalAmount),
-          paymentMethod: "Cash",
-          status: "Payed",
-          date: Timestamp.fromDate(currentDay),
-        );
+            id: time,
+            userId: uId,
+            looserName: listLosers[0].looserName,
+            loosGames: totalLoseGames,
+            totalAmount: totalAmount,
+            payedAmount: int.parse(finalAmount),
+            paymentMethod: "Cash",
+            status: "Payed",
+            tableNumber: loserData.tableNumber);
 
         // Add sale to batch
         DocumentReference saleRef = fireStore
@@ -206,16 +205,15 @@ class FirebaseSaleServices {
         }
       } else {
         TableSalesModel tableSalesModel = TableSalesModel(
-          id: time,
-          userId: uId,
-          looserName: loserData.looserName,
-          loosGames: loserData.loosGames,
-          totalAmount: loserData.payAmount.toString(),
-          payedAmount: int.parse(finalAmount),
-          paymentMethod: "Cash",
-          status: "Payed",
-          date: Timestamp.fromDate(currentDay),
-        );
+            id: time,
+            userId: uId,
+            looserName: loserData.looserName,
+            loosGames: loserData.loosGames,
+            totalAmount: loserData.payAmount.toString(),
+            payedAmount: int.parse(finalAmount),
+            paymentMethod: "Cash",
+            status: "Payed",
+            tableNumber: loserData.tableNumber);
 
         // Add single sale
         DocumentReference saleRef = fireStore
@@ -257,49 +255,49 @@ class FirebaseSaleServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      // Get the current date
-      DateTime now = DateTime.now();
+
+      // Always use UTC
+      DateTime now = DateTime.now().toUtc();
+
       DateTime startDate;
-      DateTime endDate =
-          DateTime(now.year, now.month, now.day, 23, 59, 59); // End of today
+      DateTime endDate;
 
       if (dateRange == "Daily") {
-        QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
-            .collection("SaleManagement")
-            .doc(uId)
-            .collection("SaleDetails")
-            .where("date", isEqualTo: Timestamp.fromDate(endDate))
-            .orderBy("id", descending: true)
-            .get();
-        List<TableSalesModel> salesList = snapshot.docs
-            .map((doc) => TableSalesModel.fromJson(doc.data()))
-            .toList();
-        return salesList;
+        startDate = DateTime.utc(now.year, now.month, now.day);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Weekly") {
-        startDate =
-            now.subtract(const Duration(days: 6)); // 7 days back from today
+        startDate = now.subtract(const Duration(days: 6));
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
+        startDate = DateTime.utc(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(const Duration(days: 30)); // 1 month back (your logic)
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
+        startDate = DateTime.utc(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(const Duration(days: 365)); // 1 year back (your logic)
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else {
-        // If the condition doesn't match, return an empty list
         return [];
       }
-      // Fetching the snapshot of the Firestore query
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection("SaleManagement")
           .doc(uId)
           .collection("SaleDetails")
           .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .orderBy("id", descending: true)
+          .orderBy("date", descending: true) // better than id
           .get();
-      // Converting snapshot documents to a list of maps
-      List<TableSalesModel> salesList = snapshot.docs
+
+      return snapshot.docs
           .map((doc) => TableSalesModel.fromJson(doc.data()))
           .toList();
-      return salesList;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
     } on FirebaseException {
@@ -319,37 +317,25 @@ class FirebaseSaleServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      // Get the current date
-      DateTime now = DateTime.now();
+
+      // Always use UTC
+      DateTime now = DateTime.now().toUtc();
+
       DateTime startDate;
-      DateTime endDate =
-          DateTime(now.year, now.month, now.day, 23, 59, 59); // End of today
+      DateTime endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
 
       if (dateRange == "Daily") {
-        QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
-            .collection("SaleManagement")
-            .doc(uId)
-            .collection("SaleDetails")
-            .where("tableNumber", isEqualTo: tableNumber)
-            .where("date", isEqualTo: Timestamp.fromDate(endDate))
-            .orderBy("id", descending: true)
-            .get();
-        List<TableSalesModel> salesList = snapshot.docs
-            .map((doc) => TableSalesModel.fromJson(doc.data()))
-            .toList();
-        return salesList;
+        startDate = DateTime.utc(now.year, now.month, now.day);
       } else if (dateRange == "Weekly") {
-        startDate =
-            now.subtract(const Duration(days: 6)); // 7 days back from today
+        startDate = now.subtract(const Duration(days: 6));
       } else if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
+        startDate = now.subtract(const Duration(days: 30)); // your logic
       } else if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
+        startDate = now.subtract(const Duration(days: 365)); // your logic
       } else {
-        // If the condition doesn't match, return an empty list
         return [];
       }
-      // Fetching the snapshot of the Firestore query
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection("SaleManagement")
           .doc(uId)
@@ -357,13 +343,12 @@ class FirebaseSaleServices {
           .where("tableNumber", isEqualTo: tableNumber)
           .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .orderBy("id", descending: true)
+          .orderBy("date", descending: true)
           .get();
-      // Converting snapshot documents to a list of maps
-      List<TableSalesModel> salesList = snapshot.docs
+
+      return snapshot.docs
           .map((doc) => TableSalesModel.fromJson(doc.data()))
           .toList();
-      return salesList;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
     } on FirebaseException {

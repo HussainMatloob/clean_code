@@ -65,14 +65,20 @@ class FirebaseMembershipServices {
         throw "No internet connection. Please check your network.";
       }
       DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      // Parse the string into a DateTime object
-      DateTime formatStartDate = dateFormat.parse(startDate);
-      DateTime formatEndDate = dateFormat.parse(endDate);
-      const ext = 'jpg'; // You can change this based on your image format
-      final ref = storage.ref().child('MemberImages/$time.$ext');
 
-      TaskSnapshot snapshot = await ref.putData(employeeImage);
-      String imageUrl = await snapshot.ref.getDownloadURL();
+      DateTime parsedStart = dateFormat.parse(startDate);
+      DateTime parsedEnd = dateFormat.parse(endDate);
+
+      DateTime formatStartDate =
+          DateTime.utc(parsedStart.year, parsedStart.month, parsedStart.day);
+
+      DateTime formatEndDate = DateTime.utc(
+          parsedEnd.year, parsedEnd.month, parsedEnd.day, 23, 59, 59);
+      // const ext = 'jpg'; // You can change this based on your image format
+      // final ref = storage.ref().child('MemberImages/$time.$ext');
+
+      // TaskSnapshot snapshot = await ref.putData(employeeImage);
+      // String imageUrl = await snapshot.ref.getDownloadURL();
 
       MemberModel memberModel = MemberModel(
           userId: uId,
@@ -88,7 +94,8 @@ class FirebaseMembershipServices {
           endDate: Timestamp.fromDate(formatEndDate),
           packageDuration: packageDuration,
           packagePrice: packagePrice,
-          image: imageUrl);
+          image: "" //imageUrl
+          );
 
       await fireStore
           .collection('MembershipManagement')
@@ -137,9 +144,15 @@ class FirebaseMembershipServices {
         throw "No internet connection. Please check your network.";
       }
       DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      // Parse the string into a DateTime object
-      DateTime formatStartDate = dateFormat.parse(startDate);
-      DateTime formatEndDate = dateFormat.parse(endDate);
+
+      DateTime parsedStart = dateFormat.parse(startDate);
+      DateTime parsedEnd = dateFormat.parse(endDate);
+
+      DateTime formatStartDate =
+          DateTime.utc(parsedStart.year, parsedStart.month, parsedStart.day);
+
+      DateTime formatEndDate =
+          DateTime.utc(parsedEnd.year, parsedEnd.month, parsedEnd.day);
 
       await fireStore
           .collection('MembershipManagement')
@@ -197,14 +210,20 @@ class FirebaseMembershipServices {
         throw "No internet connection. Please check your network.";
       }
       DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      // Parse the string into a DateTime object
-      DateTime formatStartDate = dateFormat.parse(startDate);
-      DateTime formatEndDate = dateFormat.parse(endDate);
+
+      DateTime parsedStart = dateFormat.parse(startDate);
+      DateTime parsedEnd = dateFormat.parse(endDate);
+
+      DateTime formatStartDate =
+          DateTime.utc(parsedStart.year, parsedStart.month, parsedStart.day);
+
+      DateTime formatEndDate =
+          DateTime.utc(parsedEnd.year, parsedEnd.month, parsedEnd.day);
       final time = DateTime.now().millisecondsSinceEpoch.toString();
-      const ext = 'jpg';
-      final ref = storage.ref().child('MemberImages/$time.$ext');
-      TaskSnapshot snapshot = await ref.putData(memImage);
-      String imageUrl = await snapshot.ref.getDownloadURL();
+      // const ext = 'jpg';
+      // final ref = storage.ref().child('MemberImages/$time.$ext');
+      // TaskSnapshot snapshot = await ref.putData(memImage);
+      // String imageUrl = await snapshot.ref.getDownloadURL();
 
       await fireStore
           .collection('MembershipManagement')
@@ -223,7 +242,7 @@ class FirebaseMembershipServices {
         'endDate': Timestamp.fromDate(formatEndDate),
         "packageDuration": packageDuration,
         "packagePrice": packagePrice,
-        'image': imageUrl
+        'image': "" //imageUrl
       }).timeout(const Duration(seconds: 180), onTimeout: () {
         throw "Connection timed out. Please check your internet and try again.";
       });
@@ -375,9 +394,19 @@ class FirebaseMembershipServices {
       String uId = sp.getString('uId') ?? "";
       DateFormat dateFormat = DateFormat('dd-MM-yyyy');
       // Parse the string into a DateTime object
-      DateTime formatBillDate = dateFormat.parse(billDate);
-      DateTime formatStartDate = dateFormat.parse(startDate);
-      DateTime formatEndDate = dateFormat.parse(endDate);
+
+      DateTime parsedStart = dateFormat.parse(startDate);
+      DateTime parsedEnd = dateFormat.parse(endDate);
+      DateTime parsedBill = dateFormat.parse(endDate);
+
+      DateTime formatStartDate =
+          DateTime.utc(parsedStart.year, parsedStart.month, parsedStart.day);
+
+      DateTime formatEndDate = DateTime.utc(
+          parsedEnd.year, parsedEnd.month, parsedEnd.day, 23, 59, 59);
+
+      DateTime formatBillDate = DateTime.utc(
+          parsedBill.year, parsedBill.month, parsedBill.day, 23, 59, 59);
 
       final time = DateTime.now().millisecondsSinceEpoch.toString();
       final memberBillingModel = MemberBillingModel(
@@ -527,15 +556,15 @@ class FirebaseMembershipServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      final DateTime currentDate = DateTime.now().toUtc(); // Convert to UTC
-      DateTime startOfDay =
-          DateTime.utc(currentDate.year, currentDate.month, currentDate.day);
+      final DateTime now = DateTime.now().toUtc();
+
+      final DateTime currentDate = DateTime.utc(now.year, now.month, now.day);
       QuerySnapshot<Map<String, dynamic>> query = await fireStore
           .collection('MembershipManagement')
           .doc(uId)
           .collection("MembershipDetail")
           .where("endDate",
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+              isGreaterThanOrEqualTo: Timestamp.fromDate(currentDate))
           .get();
       return query.docs.length;
     } catch (e) {
@@ -547,15 +576,14 @@ class FirebaseMembershipServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      final DateTime currentDate = DateTime.now().toUtc(); // Convert to UTC
-      DateTime startOfDay = DateTime.utc(
-          currentDate.year, currentDate.month, currentDate.day); // Ensure UTC
+      final DateTime now = DateTime.now().toUtc();
+      final DateTime currentDate = DateTime.utc(now.year, now.month, now.day);
 
       QuerySnapshot<Map<String, dynamic>> query = await fireStore
           .collection('MembershipManagement')
           .doc(uId)
           .collection("MembershipDetail")
-          .where("endDate", isLessThan: Timestamp.fromDate(startOfDay))
+          .where("endDate", isLessThan: Timestamp.fromDate(currentDate))
           .get();
       return query.docs.length;
     } catch (e) {
@@ -571,16 +599,16 @@ class FirebaseMembershipServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      final DateTime currentDate = DateTime.now().toUtc(); // Convert to UTC
-      DateTime startOfDay =
-          DateTime.utc(currentDate.year, currentDate.month, currentDate.day);
+      final DateTime now = DateTime.now().toUtc();
+      final DateTime currentDate = DateTime.utc(now.year, now.month, now.day);
+
       // Fetching the snapshot of the Firestore query
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('MembershipManagement')
           .doc(uId)
           .collection("MembershipDetail")
           .where("endDate",
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+              isGreaterThanOrEqualTo: Timestamp.fromDate(currentDate))
           .orderBy("id", descending: true)
           .get();
 
@@ -608,15 +636,14 @@ class FirebaseMembershipServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      final DateTime currentDate = DateTime.now().toUtc(); // Convert to UTC
-      DateTime startOfDay =
-          DateTime.utc(currentDate.year, currentDate.month, currentDate.day);
+      final DateTime now = DateTime.now().toUtc();
+      final DateTime currentDate = DateTime.utc(now.year, now.month, now.day);
       // Fetching the snapshot of the Firestore query
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('MembershipManagement')
           .doc(uId)
           .collection("MembershipDetail")
-          .where("endDate", isLessThan: Timestamp.fromDate(startOfDay))
+          .where("endDate", isLessThan: Timestamp.fromDate(currentDate))
           .orderBy("id", descending: true)
           .get();
 

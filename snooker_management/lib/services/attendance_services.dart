@@ -26,8 +26,8 @@ class FirebaseAttendanceServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      DateTime now = DateTime.now();
-      DateTime currentDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      // DateTime now = DateTime.now();
+      //  DateTime currentDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
       for (int i = 0; i < employees.length; i++) {
         if (employees[i].shift == shift) {
           var time = DateTime.now().millisecondsSinceEpoch.toString();
@@ -35,7 +35,6 @@ class FirebaseAttendanceServices {
             userId: uId,
             id: time,
             employeeName: employees[i].employeeName,
-            date: Timestamp.fromDate(currentDay),
             shift: shift,
             status: status,
           );
@@ -68,19 +67,31 @@ class FirebaseAttendanceServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      DateTime now = DateTime.now();
-      DateTime currentDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+      DateTime now = DateTime.now().toUtc();
+
+      DateTime startOfDay = DateTime.utc(now.year, now.month, now.day);
+
+      DateTime endOfDay =
+          DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('AttendanceManagement')
           .doc(uId)
           .collection("AttendanceDetails")
           .where("shift", isEqualTo: shift)
-          .where("date", isEqualTo: Timestamp.fromDate(currentDay))
+          .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
           .limit(1)
           .get();
-      return snapshot.docs.isNotEmpty;
+
+      if (snapshot.docs.isNotEmpty) {
+        return true;
+      } else {
+        return false;
+      }
     } catch (e) {
-      return false;
+      return true;
     }
   }
 
@@ -92,19 +103,27 @@ class FirebaseAttendanceServices {
     SharedPreferences sp = await SharedPreferences.getInstance();
     String uId = sp.getString('uId') ?? "";
     try {
-      DateTime now = DateTime.now();
-      DateTime currentDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      DateTime now = DateTime.now().toUtc();
+
+      DateTime startOfDay = DateTime.utc(now.year, now.month, now.day);
+
+      DateTime endOfDay =
+          DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
 
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('AttendanceManagement')
           .doc(uId)
           .collection("AttendanceDetails")
           .where("shift", isEqualTo: shift)
-          .where("date", isEqualTo: Timestamp.fromDate(currentDay))
+          .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+          .orderBy("date")
           .get();
+
       List<AttendanceModel> attendanceList = snapshot.docs
           .map((doc) => AttendanceModel.fromJson(doc.data()))
           .toList();
+
       if (attendanceList.isEmpty) {
         return null;
       } else {
@@ -173,27 +192,34 @@ class FirebaseAttendanceServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      // Parse the string into a DateTime object
-      DateTime formatDate = dateFormat.parse(attendanceDate);
 
-      DateTime date = DateTime(
-          formatDate.year, formatDate.month, formatDate.day, 23, 59, 59);
+      DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+
+      // Parse selected date
+      DateTime selectedDate = dateFormat.parse(attendanceDate);
+
+      // Convert to UTC start & end of day
+      DateTime startOfDay =
+          DateTime.utc(selectedDate.year, selectedDate.month, selectedDate.day);
+
+      DateTime endOfDay = DateTime.utc(
+          selectedDate.year, selectedDate.month, selectedDate.day, 23, 59, 59);
 
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('AttendanceManagement')
           .doc(uId)
           .collection("AttendanceDetails")
           .where("employeeName", isEqualTo: employeeName)
-          .where("date", isEqualTo: Timestamp.fromDate(date))
           .where("shift", isEqualTo: shift)
+          .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
           .limit(1)
           .get();
 
       if (snapshot.docs.isNotEmpty) {
         return AttendanceModel.fromJson(snapshot.docs.first.data());
       }
-      // If no match is found, return null
+
       return null;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
@@ -214,37 +240,38 @@ class FirebaseAttendanceServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      // Get the current date
-      DateTime now = DateTime.now();
-      DateTime startDate;
-      DateTime endDate =
-          DateTime(now.year, now.month, now.day, 23, 59, 59); // End of today
 
+      DateTime now = DateTime.now().toUtc();
+
+      DateTime startDate;
+      DateTime endDate;
+
+      // ================= DAILY =================
       if (dateRange == "Daily") {
-        QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
-            .collection('AttendanceManagement')
-            .doc(uId)
-            .collection("AttendanceDetails")
-            .where("date", isEqualTo: Timestamp.fromDate(endDate))
-            .where("shift", isEqualTo: shift)
-            .orderBy("id", descending: true)
-            .get();
-        List<AttendanceModel> attendanceList = snapshot.docs
-            .map((doc) => AttendanceModel.fromJson(doc.data()))
-            .toList();
-        return attendanceList;
-      } else if (dateRange == "Weekly") {
-        startDate =
-            now.subtract(const Duration(days: 6)); // 7 days back from today
-      } else if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
-      } else if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
+        startDate = DateTime.utc(now.year, now.month, now.day);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
+      }
+
+      // ================= WEEKLY =================
+      else if (dateRange == "Weekly") {
+        startDate = now.subtract(const Duration(days: 6));
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
+      }
+
+      // ================= MONTHLY =================
+      else if (dateRange == "Monthly") {
+        startDate = now.subtract(const Duration(days: 30));
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
+      }
+
+      // ================= YEARLY =================
+      else if (dateRange == "Yearly") {
+        startDate = now.subtract(const Duration(days: 365));
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else {
-        // If the condition doesn't match, return an empty list
         return [];
       }
-      // Fetching the snapshot of the Firestore query
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('AttendanceManagement')
           .doc(uId)
@@ -252,13 +279,12 @@ class FirebaseAttendanceServices {
           .where("shift", isEqualTo: shift)
           .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .orderBy("id", descending: true)
+          .orderBy("date", descending: true) //  must be date
           .get();
-      // Converting snapshot documents to a list of maps
-      List<AttendanceModel> attendanceList = snapshot.docs
+
+      return snapshot.docs
           .map((doc) => AttendanceModel.fromJson(doc.data()))
           .toList();
-      return attendanceList;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
     } on FirebaseException {
@@ -281,24 +307,29 @@ class FirebaseAttendanceServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      // Get the current date
-      DateTime now = DateTime.now();
-      DateTime startDate;
-      DateTime endDate =
-          DateTime(now.year, now.month, now.day, 23, 59, 59); // End of today
 
+      DateTime now = DateTime.now().toUtc();
+
+      DateTime startDate;
+      DateTime endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
+
+      // ================= WEEKLY =================
       if (dateRange == "Weekly") {
-        startDate =
-            now.subtract(const Duration(days: 6)); // 7 days back from today
-      } else if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
-      } else if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
+        startDate = now.subtract(const Duration(days: 6));
+      }
+
+      // ================= MONTHLY =================
+      else if (dateRange == "Monthly") {
+        startDate = now.subtract(const Duration(days: 30));
+      }
+
+      // ================= YEARLY =================
+      else if (dateRange == "Yearly") {
+        startDate = now.subtract(const Duration(days: 365));
       } else {
-        // If the condition doesn't match, return an empty list
         return [];
       }
-      // Fetching the snapshot of the Firestore query
+
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('AttendanceManagement')
           .doc(uId)
@@ -307,13 +338,12 @@ class FirebaseAttendanceServices {
           .where("employeeName", isEqualTo: employeeName)
           .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .orderBy("id", descending: true)
+          .orderBy("date", descending: true) //  must be date
           .get();
-      // Converting snapshot documents to a list of maps
-      List<AttendanceModel> attendanceList = snapshot.docs
+
+      return snapshot.docs
           .map((doc) => AttendanceModel.fromJson(doc.data()))
           .toList();
-      return attendanceList;
     } on FirebaseAuthException {
       throw "Authentication failed. Please check your credentials.";
     } on FirebaseException {

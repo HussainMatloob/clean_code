@@ -226,7 +226,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                               CustomButtonWidget(
                                 sizedBoxWidth: 10.w,
                                 tabAction: () async {
-                                  expensesController.resetPdfCurrentPage();
                                   expensesController
                                       .generateExpensesReport(context);
                                 },

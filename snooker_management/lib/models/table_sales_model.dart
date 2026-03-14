@@ -6,9 +6,11 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-TableSalesModel tableSalesModelFromJson(String str) => TableSalesModel.fromJson(json.decode(str));
+TableSalesModel tableSalesModelFromJson(String str) =>
+    TableSalesModel.fromJson(json.decode(str));
 
-String tableSalesModelToJson(TableSalesModel data) => json.encode(data.toJson());
+String tableSalesModelToJson(TableSalesModel data) =>
+    json.encode(data.toJson());
 
 class TableSalesModel {
   String? userId;
@@ -19,6 +21,7 @@ class TableSalesModel {
   int? payedAmount;
   String? status;
   String? paymentMethod;
+  String? tableNumber;
   Timestamp? date;
 
   TableSalesModel({
@@ -30,30 +33,34 @@ class TableSalesModel {
     this.payedAmount,
     this.status,
     this.paymentMethod,
+    this.tableNumber,
     this.date,
   });
 
-  factory TableSalesModel.fromJson(Map<String, dynamic> json) => TableSalesModel(
-    userId: json["userId"],
-    id: json["id"],
-    looserName: json["looserName"],
-    loosGames: json["loosGames"],
-    totalAmount: json["totalAmount"],
-    payedAmount: json["payedAmount"],
-    status: json["status"],
-    paymentMethod: json["paymentMethod"],
-    date: json["date"],
-  );
+  factory TableSalesModel.fromJson(Map<String, dynamic> json) =>
+      TableSalesModel(
+        userId: json["userId"],
+        id: json["id"],
+        looserName: json["looserName"],
+        loosGames: json["loosGames"],
+        totalAmount: json["totalAmount"],
+        payedAmount: json["payedAmount"],
+        status: json["status"],
+        paymentMethod: json["paymentMethod"],
+        tableNumber: json["tableNumber"],
+        date: json["date"],
+      );
 
   Map<String, dynamic> toJson() => {
-    "userId": userId,
-    "id": id,
-    "looserName": looserName,
-    "loosGames": loosGames,
-    "totalAmount": totalAmount,
-    "payedAmount": payedAmount,
-    "status": status,
-    "paymentMethod": paymentMethod,
-    "date": date,
-  };
+        "userId": userId,
+        "id": id,
+        "looserName": looserName,
+        "loosGames": loosGames,
+        "totalAmount": totalAmount,
+        "payedAmount": payedAmount,
+        "status": status,
+        "paymentMethod": paymentMethod,
+        "tableNumber": tableNumber,
+        "date": date ?? FieldValue.serverTimestamp(),
+      };
 }

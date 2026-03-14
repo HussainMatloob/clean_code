@@ -125,8 +125,9 @@ class _CustomDropDownButtonState<T extends GetxController>
             buttonStyleData: ButtonStyleData(
               height: widget.height ?? 57.h,
               width: widget.width ?? 311.w,
-              padding: EdgeInsets.symmetric(
-                horizontal: mq.width * 0.01,
+              padding: EdgeInsets.only(
+                left: 10.w,
+                right: 5.w,
               ),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10.r),

@@ -1,19 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:pdf/pdf.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snooker_management/constants/images_constant.dart';
 import 'package:snooker_management/models/expense_model.dart';
 import 'package:snooker_management/models/expenses_name_model.dart';
 import 'package:snooker_management/models/other_expenses_model.dart';
 import 'package:snooker_management/services/expense_services.dart';
+import 'package:snooker_management/services/pdf_services/expense_pdf_services.dart';
+import 'package:snooker_management/services/pdf_services/other_expense_pdf_service.dart';
 import 'package:snooker_management/utils/flush_messages_util.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:snooker_management/utils/helper/dialog_helper.dart';
 import 'package:snooker_management/utils/helper/internet_checker_helper.dart';
 
@@ -58,14 +57,6 @@ class ExpensesController extends GetxController {
     update();
   }
 
-  String formatDate(Timestamp timestamp) {
-    // Convert Timestamp to DateTime
-    DateTime dateTime = timestamp.toDate();
-
-    // Format DateTime to 'yyyy-MM-dd'
-    return DateFormat('dd-MM-yyyy').format(dateTime);
-  }
-
   void selectDropDownListValue(String value, bool isShowingExpense) {
     selectedCustomName = value;
     update();
@@ -101,6 +92,7 @@ class ExpensesController extends GetxController {
       expenseSearchingProgress(false);
       update();
     } catch (e) {
+      print("-----------------------------$e");
       expenseSearchingProgress(false);
       setSearchedExpenseEmpty();
       update();
@@ -499,7 +491,7 @@ class ExpensesController extends GetxController {
           List<ExpensesModel> expenseReport =
               await FirebaseExpenseServices.generateExpensesReportByNameInRange(
                   context, selectedExpenseReportOption!, selectedCustomName!);
-          EasyLoading.dismiss();
+
           List<ExpensesModel> expensesModel = expenseReport;
           if (expensesModel.isNotEmpty) {
             expenseReportGenerator(context, expensesModel, false);
@@ -514,16 +506,18 @@ class ExpensesController extends GetxController {
           List<ExpensesModel> expenseReport =
               await FirebaseExpenseServices.generateExpensesInDateRange(
                   context, selectedExpenseReportOption!);
-          EasyLoading.dismiss();
+
           List<ExpensesModel> expensesModel = expenseReport;
           if (expensesModel.isNotEmpty) {
             expenseReportGenerator(context, expensesModel, false);
           } else {
             if (!context.mounted) return;
+            EasyLoading.dismiss();
             DialogHelper.showNoticeDialog(
                 context, "There are currently no expense records available");
           }
         } else {
+          EasyLoading.dismiss();
           DialogHelper.showAttentionDialog(
               context, "Please select a report option to continue");
         }
@@ -532,105 +526,47 @@ class ExpensesController extends GetxController {
       EasyLoading.dismiss();
       if (!context.mounted) return;
       DialogHelper.showExceptionErrorDialog(context, "$e");
-    } finally {
-      EasyLoading.dismiss();
     }
   }
 
 /*--------------------------------------------------------------------------*/
 /*                 generate other Expense report logic                      */
 /*--------------------------------------------------------------------------*/
-  Future<void> generateOtherExpensesReport(BuildContext context) async {
-    try {
-      if (selectedOtherExpenseReportOption != null) {
-        FlushMessagesUtil.easyLoading();
-        List<OtherExpensesModel> otherExpenseData =
-            await FirebaseExpenseServices.generateOtherExpensesReportInRange(
-                context, selectedOtherExpenseReportOption!);
-        EasyLoading.dismiss();
-        List<OtherExpensesModel> otherExpensesModel = otherExpenseData;
-        if (!context.mounted) return;
-        if (otherExpensesModel.isNotEmpty) {
-          expenseReportGenerator(context, otherExpensesModel, true);
-        } else {
-          DialogHelper.showNoticeDialog(
-              context, "There are currently no expense records available");
-        }
-      } else {
-        DialogHelper.showAttentionDialog(
-            context, "Please select a report option to continue");
-      }
-    } catch (e) {
-      EasyLoading.dismiss();
-      if (!context.mounted) return;
-      DialogHelper.showExceptionErrorDialog(context, "$e");
-    } finally {
-      EasyLoading.dismiss();
-    }
-  }
 
-  int totalPages = 1;
-  int currentPage = 1;
   String? snookerName;
   Uint8List? image;
-  List<List<dynamic>> allPages = [];
 
-  void resetPdfCurrentPage() {
-    currentPage = 1;
-    update();
-  }
-
-  // Generate PDF dynamically, checking space per page
-  Future<Map<String, dynamic>> generatePdf(
-      BuildContext context, List<dynamic> expensesList) async {
-    final pdf = pw.Document();
-    const pageFormat = PdfPageFormat.a4; // A4 page format
-    final pageHeight = pageFormat.height; // A4 page height
-    const margin = 20.0; // Margin space for top, bottom, left, and right
-    const headerHeight = 30.0; // Space for header (adjust as needed)
-    const contentHeight = 20.0; // Height of each row (adjust based on content)
-    double currentHeight = headerHeight; // Start with header height
-    List<List<dynamic>> allPages = [];
-    List<dynamic> currentPageExpenses = [];
-
-    for (var expenses in expensesList) {
-      // Check if adding this row will exceed available space (accounting for margins and header)
-      if (currentHeight + contentHeight > (pageHeight - margin * 2)) {
-        // If it exceeds, add the current page to allPages and start a new page
-        allPages.add(currentPageExpenses);
-        currentPageExpenses = [expenses]; // Start with current row on next page
-        currentHeight = headerHeight +
-            contentHeight; // Reset height for new page (including header)
-      } else {
-        // If there's space, add the row to the current page
-        currentPageExpenses.add(expenses);
-        currentHeight += contentHeight; // Add row height to the current height
-      }
-    }
-
-    // Add remaining rows to the last page if any
-    if (currentPageExpenses.isNotEmpty) {
-      allPages.add(currentPageExpenses);
-    }
-
-    totalPages = allPages.length;
-
-    // Return the generated PDF document, total pages, and paginated data
-    return {'pdf': pdf, 'totalPages': totalPages, 'allPages': allPages};
-  }
-
-  void expenseReportGenerator(BuildContext context,
-      List<dynamic> expensesOrOtherExpenses, bool isOtherExpense) async {
-    final result = await generatePdf(context, expensesOrOtherExpenses);
-    final pdf = result['pdf'] as pw.Document;
-    totalPages = result['totalPages'] as int;
-    allPages = result['allPages'] as List<List<dynamic>>;
+  Uint8List? otherExpensepdfBytes;
+  Uint8List? expensepdfBytes;
+  Future<void> expenseReportGenerator(
+      BuildContext context, List<dynamic> expenses, bool isOtherExpense) async {
+    /// LOAD LOGO
     image =
         (await rootBundle.load(ImageConstant.tableLogo)).buffer.asUint8List();
 
+    /// LOAD CLUB NAME
     SharedPreferences sp = await SharedPreferences.getInstance();
     snookerName = sp.getString('clubName') ?? "";
+    update();
 
+    /// ⭐ GENERATE PDF
+    if (isOtherExpense) {
+      otherExpensepdfBytes = await OtherExpensePdfService.generatePdf(
+        otherExpenses: expenses,
+        snookerName: snookerName ?? "",
+        image: image,
+      );
+    } else {
+      expensepdfBytes = await ExpensePdfServices.generatePdf(
+        expenses: expenses,
+        snookerName: snookerName ?? "",
+        image: image,
+      );
+    }
+
+    EasyLoading.dismiss();
+
+    update();
     if (isOtherExpense) {
       if (!context.mounted) return;
       context.go('/app/otherExpensePdf');
@@ -640,38 +576,32 @@ class ExpensesController extends GetxController {
     }
   }
 
-  void goToFirstPage() {
-    if (currentPage != 1) {
-      currentPage = 1;
-      update();
-    }
-  }
+  Future<void> generateOtherExpensesReport(BuildContext context) async {
+    try {
+      if (selectedOtherExpenseReportOption != null) {
+        FlushMessagesUtil.easyLoading();
+        List<OtherExpensesModel> otherExpenseData =
+            await FirebaseExpenseServices.generateOtherExpensesReportInRange(
+                context, selectedOtherExpenseReportOption!);
 
-  void goToPreviousPage() {
-    if (currentPage > 1) {
-      currentPage--;
-      update();
-    }
-  }
-
-  void goToNextPage(int totalPages) {
-    if (currentPage < totalPages) {
-      currentPage++;
-      update();
-    }
-  }
-
-  void goToLastPage(int totalPages) {
-    if (currentPage != totalPages) {
-      currentPage = totalPages;
-      update();
-    }
-  }
-
-  void goToPage(int pageNumber, int totalPages) {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      currentPage = pageNumber;
-      update();
+        List<OtherExpensesModel> otherExpensesModel = otherExpenseData;
+        if (!context.mounted) return;
+        if (otherExpensesModel.isNotEmpty) {
+          expenseReportGenerator(context, otherExpensesModel, true);
+        } else {
+          EasyLoading.dismiss();
+          DialogHelper.showNoticeDialog(
+              context, "There are currently no expense records available");
+        }
+      } else {
+        EasyLoading.dismiss();
+        DialogHelper.showAttentionDialog(
+            context, "Please select a report option to continue");
+      }
+    } catch (e) {
+      EasyLoading.dismiss();
+      if (!context.mounted) return;
+      DialogHelper.showExceptionErrorDialog(context, "$e");
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:get/state_manager.dart';
 import 'package:snooker_management/constants/color_constants.dart';
 import 'package:snooker_management/controller/expenses_controller.dart';
 import 'package:snooker_management/main.dart';
+import 'package:snooker_management/utils/date_time_utils.dart';
 import 'package:snooker_management/utils/helper/responsive_helper.dart';
 import 'package:snooker_management/views/screens/expense_management/add_and_update_expenses_dialog.dart';
 import 'package:snooker_management/views/widgets/custom_alart_dialog.dart';
@@ -118,7 +119,6 @@ class _SearchExpenseScreenState extends State<SearchExpenseScreen> {
                     CustomButtonWidget(
                       sizedBoxWidth: 10.w,
                       tabAction: () async {
-                        expensesController.resetPdfCurrentPage();
                         expensesController.generateExpensesReport(context);
                       },
                       buttonColor: ColorConstant.blueColor,
@@ -230,7 +230,7 @@ class _SearchExpenseScreenState extends State<SearchExpenseScreen> {
                                     .searchedExpenses[index].expenseAmount
                                     .toString();
                             expensesController.dateController.text =
-                                expensesController.formatDate(expensesController
+                                DateTimeUtils.formatDate(expensesController
                                     .searchedExpenses[index].expenseDate!);
 
                             AddAndUpdateExpensesDialog.showCustomDialog(
@@ -285,7 +285,7 @@ class _SearchExpenseScreenState extends State<SearchExpenseScreen> {
                                       color: ColorConstant.blackColor,
                                     ),
                                     CustomText(
-                                      expensesController.formatDate(
+                                      DateTimeUtils.formatDate(
                                           expensesController
                                               .searchedExpenses[index]
                                               .expenseDate!),

@@ -98,17 +98,11 @@ class _EditAbleCustomDropDownButtonStateState<T extends GetxController>
                   buttonStyleData: ButtonStyleData(
                     width: widget.width ?? 30.w,
                     height: 35.h,
-                    padding: EdgeInsets.only(
-                        left: 5.w,
-                        right: ResponsiveHelper.isMobile(context)
-                            ? 6.w
-                            : 5.w), // Balanced padding
                     decoration: BoxDecoration(
+                      color: Colors.transparent, // important
                       borderRadius: BorderRadius.circular(100.r),
-                      border: Border.all(color: Colors.transparent),
-                      color: ColorConstant.greenLightColor,
                     ),
-                    elevation: 2,
+                    elevation: 0, // remove shadow
                   ),
                   dropdownStyleData: DropdownStyleData(
                     maxHeight: mq.height * 0.2,
@@ -178,12 +172,12 @@ class _EditAbleCustomDropDownButtonStateState<T extends GetxController>
                 widget.customFieldController.text.trim().isNotEmpty)
               widget.isAllocation
                   ? const SizedBox()
-                  : ElevatedButton(
+                  : TextButton(
                       onPressed: () {
                         customController.addCustomExpense(context);
                       },
                       child: CustomText('Add to list'),
-                    ),
+                    )
           ],
         );
       },

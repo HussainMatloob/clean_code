@@ -69,6 +69,6 @@ class TemporaryLosersModel {
         "startTime": startTime,
         "endTime": endTime,
         "totalTime": totalTime,
-        "date": date,
+        "date": date ?? FieldValue.serverTimestamp(),
       };
 }

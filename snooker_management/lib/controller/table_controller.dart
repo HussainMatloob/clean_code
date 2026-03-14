@@ -6,12 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:pdf/pdf.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snooker_management/constants/images_constant.dart';
+import 'package:snooker_management/services/pdf_services/table_pdf_service.dart';
 import 'package:snooker_management/services/table_services.dart';
 import 'package:snooker_management/utils/flush_messages_util.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:snooker_management/utils/helper/dialog_helper.dart';
 import 'package:snooker_management/utils/helper/internet_checker_helper.dart';
-import 'package:snooker_management/views/screens/table_management/table_pdf_preview.dart';
+
 import '../models/table_details_model.dart';
 
 class TableController extends GetxController {
@@ -270,15 +271,16 @@ class TableController extends GetxController {
 /*--------------------------------------------------------------------------*/
   void generateTablesReport(BuildContext context) async {
     try {
-      resetPdfCurrentPage();
       FlushMessagesUtil.easyLoading();
       List<TableDetailModel> tableModel =
           await FirebaseTableServices.generateTableReport();
 
       if (tableModel.isNotEmpty) {
+        if (!context.mounted) return;
         tableReportGenerator(context, tableModel);
       } else {
         if (!context.mounted) return;
+        EasyLoading.dismiss();
         DialogHelper.showNoticeDialog(
             context, "There are currently no table records available");
       }
@@ -286,8 +288,6 @@ class TableController extends GetxController {
       EasyLoading.dismiss();
       if (!context.mounted) return;
       DialogHelper.showExceptionErrorDialog(context, "$e");
-    } finally {
-      EasyLoading.dismiss();
     }
   }
 
@@ -295,101 +295,36 @@ class TableController extends GetxController {
 /*                              table report generator                      */
 /*--------------------------------------------------------------------------*/
 
-  int totalPages = 1;
-  int currentPage = 1;
   String? snookerName;
   Uint8List? image;
-  List<List<TableDetailModel>> allPages = [];
-  void resetPdfCurrentPage() {
-    currentPage = 1;
-    update();
-  }
 
-  Future<Map<String, dynamic>> generatePdf(
-      BuildContext context, List<TableDetailModel> tablesList) async {
-    final pdf = pw.Document();
-    const pageFormat = PdfPageFormat.a4; // A4 page format
-    final pageHeight = pageFormat.height; // A4 page height
-    const margin = 20.0; // Margin space for top, bottom, left, and right
-    const headerHeight = 30.0; // Space for header (adjust as needed)
-    const contentHeight = 20.0; // Height of each row (adjust based on content)
-    double currentHeight = headerHeight; // Start with header height
-    List<List<TableDetailModel>> allPages = [];
-    List<TableDetailModel> currentPageTables = [];
-
-    for (var tables in tablesList) {
-      // Check if adding this row will exceed available space (accounting for margins and header)
-      if (currentHeight + contentHeight > (pageHeight - margin * 2)) {
-        // If it exceeds, add the current page to allPages and start a new page
-        allPages.add(currentPageTables);
-        currentPageTables = [tables]; // Start with current row on next page
-        currentHeight = headerHeight +
-            contentHeight; // Reset height for new page (including header)
-      } else {
-        // If there's space, add the row to the current page
-        currentPageTables.add(tables);
-        currentHeight += contentHeight; // Add row height to the current height
-      }
-    }
-
-    // Add remaining rows to the last page if any
-    if (currentPageTables.isNotEmpty) {
-      allPages.add(currentPageTables);
-    }
-
-    totalPages = allPages.length;
-
-    // Return the generated PDF document, total pages, and paginated data
-    return {'pdf': pdf, 'totalPages': totalPages, 'allPages': allPages};
-  }
-
-  void tableReportGenerator(
-      BuildContext context, List<TableDetailModel> tableDetailModel) async {
-    final result = await generatePdf(context, tableDetailModel);
-    final pdf = result['pdf'] as pw.Document;
-    totalPages = result['totalPages'] as int;
-    allPages = result['allPages'] as List<List<TableDetailModel>>;
+  Uint8List? pdfBytes;
+  Future<void> tableReportGenerator(
+      BuildContext context, List<TableDetailModel> tables) async {
+    /// LOAD LOGO
     image =
         (await rootBundle.load(ImageConstant.tableLogo)).buffer.asUint8List();
 
+    /// LOAD CLUB NAME
     SharedPreferences sp = await SharedPreferences.getInstance();
     snookerName = sp.getString('clubName') ?? "";
+    update();
 
+    /// ⭐ GENERATE PDF
+    try {
+      pdfBytes = await TablePdfService.generatePdf(
+        tables: tables,
+        snookerName: snookerName ?? "",
+        image: image,
+      );
+    } catch (e) {
+      debugPrint("$e");
+    }
+
+    EasyLoading.dismiss();
+
+    update();
+    if (!context.mounted) return;
     context.go('/app/tablePdf');
-  }
-
-  void goToFirstPage() {
-    if (currentPage != 1) {
-      currentPage = 1;
-      update();
-    }
-  }
-
-  void goToPreviousPage() {
-    if (currentPage > 1) {
-      currentPage--;
-      update();
-    }
-  }
-
-  void goToNextPage(int totalPages) {
-    if (currentPage < totalPages) {
-      currentPage++;
-      update();
-    }
-  }
-
-  void goToLastPage(int totalPages) {
-    if (currentPage != totalPages) {
-      currentPage = totalPages;
-      update();
-    }
-  }
-
-  void goToPage(int pageNumber, int totalPages) {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      currentPage = pageNumber;
-      update();
-    }
   }
 }

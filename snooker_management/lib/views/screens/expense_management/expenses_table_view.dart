@@ -7,6 +7,7 @@ import 'package:snooker_management/controller/expenses_controller.dart';
 import 'package:snooker_management/main.dart';
 import 'package:snooker_management/models/expense_model.dart';
 import 'package:snooker_management/services/expense_services.dart';
+import 'package:snooker_management/utils/date_time_utils.dart';
 import 'package:snooker_management/utils/helper/responsive_helper.dart';
 import 'package:snooker_management/views/screens/expense_management/add_and_update_expenses_dialog.dart';
 import 'package:snooker_management/views/screens/expense_management/expense_tale_row.dart';
@@ -61,8 +62,8 @@ class _ExpensesTableViewState extends State<ExpensesTableView> {
                                         .expenseAmountController.text =
                                     expenseModel.expenseAmount.toString();
                                 expensesController.dateController.text =
-                                    expensesController
-                                        .formatDate(expenseModel.expenseDate!);
+                                    DateTimeUtils.formatDate(
+                                        expenseModel.expenseDate!);
                                 AddAndUpdateExpensesDialog.showCustomDialog(
                                     isDataAddAble: false,
                                     context,
@@ -91,7 +92,7 @@ class _ExpensesTableViewState extends State<ExpensesTableView> {
                                           color: ColorConstant.blackColor,
                                         ),
                                         CustomText(
-                                          expensesController.formatDate(
+                                          DateTimeUtils.formatDate(
                                               expenseModel.expenseDate!),
                                           fw: FontWeight.w400,
                                           size: 11.sp,
@@ -177,8 +178,8 @@ class _ExpensesTableViewState extends State<ExpensesTableView> {
                                   padding: 8.r,
                                 ),
                                 CustomTableCell(
-                                  text: expensesController
-                                      .formatDate(expenseModel.expenseDate!),
+                                  text: DateTimeUtils.formatDate(
+                                      expenseModel.expenseDate!),
                                   padding: 8.r,
                                 ),
                                 Row(
@@ -200,7 +201,7 @@ class _ExpensesTableViewState extends State<ExpensesTableView> {
                                                   .toString();
                                           expensesController
                                                   .dateController.text =
-                                              expensesController.formatDate(
+                                              DateTimeUtils.formatDate(
                                                   expenseModel.expenseDate!);
                                           AddAndUpdateExpensesDialog
                                               .showCustomDialog(
@@ -300,9 +301,8 @@ class _ExpensesTableViewState extends State<ExpensesTableView> {
                             padding: 8.r,
                           ),
                           CustomTableCell(
-                            text: expensesController.formatDate(
-                                expensesController
-                                    .searchedExpenses[index].expenseDate!),
+                            text: DateTimeUtils.formatDate(expensesController
+                                .searchedExpenses[index].expenseDate!),
                             padding: 8.r,
                           ),
 
@@ -329,7 +329,7 @@ class _ExpensesTableViewState extends State<ExpensesTableView> {
                                             .expenseAmount
                                             .toString();
                                     expensesController.dateController.text =
-                                        expensesController.formatDate(
+                                        DateTimeUtils.formatDate(
                                             expensesController
                                                 .searchedExpenses[index]
                                                 .expenseDate!);

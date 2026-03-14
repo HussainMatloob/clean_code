@@ -7,11 +7,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pdf/pdf.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:typed_data' as typed_data;
 import 'package:snooker_management/models/employee_detail_model.dart';
 import 'package:snooker_management/services/employee_services.dart';
+import 'package:snooker_management/services/pdf_services/employee_pdf_service.dart';
 import 'package:snooker_management/utils/helper/dialog_helper.dart';
 import 'package:snooker_management/utils/helper/internet_checker_helper.dart';
 import '../constants/images_constant.dart';
@@ -149,50 +151,30 @@ class EmployeeController extends GetxController {
   /*--------------------------------------------------------------------------*/
   /*                                pick local Image                           */
   /*--------------------------------------------------------------------------*/
-  typed_data.Uint8List? newImage;
 
   void pickImage(typed_data.Uint8List? image) {
     newImage = image;
     update();
   }
 
+  typed_data.Uint8List? newImage;
+
   Future<void> imagePicker() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-        withData: true, // important
+      final ImagePicker picker = ImagePicker();
+
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery, //  only gallery
       );
 
-      if (result != null) {
-        if (kIsWeb) {
-          // Web
-          newImage = result.files.single.bytes;
-        } else {
-          // Android / iOS
-          File file = File(result.files.single.path!);
-          newImage = await file.readAsBytes();
-        }
+      if (image != null) {
+        newImage = await image.readAsBytes();
         update();
       }
     } catch (e) {
       print("Error picking image: $e");
     }
   }
-  // Future<void> imagePicker() async {
-  //   try {
-  //     FilePickerResult? result = await FilePicker.platform.pickFiles(
-  //       type: FileType.image,
-  //       allowMultiple: false,
-  //     );
-  //     if (result != null && result.files.single.bytes != null) {
-  //       typed_data.Uint8List imageBytes = result.files.single.bytes!;
-  //       pickImage(imageBytes);
-  //     }
-  //   } catch (e) {
-  //     print("Error picking image: $e");
-  //   }
-  // }
 
 /*--------------------------------------------------------------------------*/
 /*                             check employee exist                         */
@@ -266,17 +248,17 @@ class EmployeeController extends GetxController {
 /*--------------------------------------------------------------------------*/
   void generateEmployeereport(BuildContext context) async {
     try {
-      resetPdfCurrentPage();
       FlushMessagesUtil.easyLoading();
       List<EmployeeModel> employeeReport =
           await FirebaseEmployeeServices.generateEmployeeReport();
-      EasyLoading.dismiss();
+
       List<EmployeeModel> employeeModel = employeeReport;
       if (!context.mounted) return;
       if (employeeModel.isNotEmpty) {
         employeeReportGenerator(context, employeeModel);
       } else {
         if (!context.mounted) return;
+        EasyLoading.dismiss();
         DialogHelper.showNoticeDialog(
             context, "There are currently no employee records available");
       }
@@ -286,8 +268,6 @@ class EmployeeController extends GetxController {
         context,
         e.toString(),
       );
-    } finally {
-      EasyLoading.dismiss();
     }
   }
 
@@ -411,104 +391,33 @@ class EmployeeController extends GetxController {
 /*--------------------------------------------------------------------------*/
 /*                           generate employee report                       */
 /*--------------------------------------------------------------------------*/
-  int totalPages = 1;
-  int currentPage = 1;
+
   String? snookerName;
   Uint8List? image;
-  List<List<EmployeeModel>> allPages = [];
-  void resetPdfCurrentPage() {
-    currentPage = 1;
-    update();
-  }
 
-  // Generate PDF dynamically, checking space per page
-  Future<Map<String, dynamic>> generatePdf(
-      BuildContext context, List<EmployeeModel> employeesList) async {
-    final pdf = pw.Document();
-    const pageFormat = PdfPageFormat.a4; // A4 page format
-    final pageHeight = pageFormat.height; // A4 page height
-    const margin = 20.0; // Margin space for top, bottom, left, and right
-    const headerHeight = 30.0; // Space for header (adjust as needed)
-    const contentHeight = 20.0; // Height of each row (adjust based on content)
-    double currentHeight = headerHeight; // Start with header height
-    List<List<EmployeeModel>> allPages = [];
-    List<EmployeeModel> currentPageEmployees = [];
-
-    for (var employees in employeesList) {
-      // Check if adding this row will exceed available space (accounting for margins and header)
-      if (currentHeight + contentHeight > (pageHeight - margin * 2)) {
-        // If it exceeds, add the current page to allPages and start a new page
-        allPages.add(currentPageEmployees);
-        currentPageEmployees = [
-          employees
-        ]; // Start with current row on next page
-        currentHeight = headerHeight +
-            contentHeight; // Reset height for new page (including header)
-      } else {
-        // If there's space, add the row to the current page
-        currentPageEmployees.add(employees);
-        currentHeight += contentHeight; // Add row height to the current height
-      }
-    }
-
-    // Add remaining rows to the last page if any
-    if (currentPageEmployees.isNotEmpty) {
-      allPages.add(currentPageEmployees);
-    }
-
-    totalPages = allPages.length;
-
-    // Return the generated PDF document, total pages, and paginated data
-    return {'pdf': pdf, 'totalPages': totalPages, 'allPages': allPages};
-  }
-
-  void employeeReportGenerator(
-      BuildContext context, List<EmployeeModel> employeeDetailModel) async {
-    final result = await generatePdf(context, employeeDetailModel);
-    final pdf = result['pdf'] as pw.Document;
-    totalPages = result['totalPages'] as int;
-    allPages = result['allPages'] as List<List<EmployeeModel>>;
+  Uint8List? pdfBytes;
+  Future<void> employeeReportGenerator(
+      BuildContext context, List<EmployeeModel> employees) async {
+    /// LOAD LOGO
     image =
         (await rootBundle.load(ImageConstant.tableLogo)).buffer.asUint8List();
 
+    /// LOAD CLUB NAME
     SharedPreferences sp = await SharedPreferences.getInstance();
     snookerName = sp.getString('clubName') ?? "";
+    update();
 
+    /// ⭐ GENERATE PDF
+    pdfBytes = await EmployeePdfService.generatePdf(
+      employees: employees,
+      snookerName: snookerName ?? "",
+      image: image,
+    );
+
+    EasyLoading.dismiss();
+
+    update();
+    if (!context.mounted) return;
     context.go('/app/employeePdf');
-  }
-
-  void goToFirstPage() {
-    if (currentPage != 1) {
-      currentPage = 1;
-      update();
-    }
-  }
-
-  void goToPreviousPage() {
-    if (currentPage > 1) {
-      currentPage--;
-      update();
-    }
-  }
-
-  void goToNextPage(int totalPages) {
-    if (currentPage < totalPages) {
-      currentPage++;
-      update();
-    }
-  }
-
-  void goToLastPage(int totalPages) {
-    if (currentPage != totalPages) {
-      currentPage = totalPages;
-      update();
-    }
-  }
-
-  void goToPage(int pageNumber, int totalPages) {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      currentPage = pageNumber;
-      update();
-    }
   }
 }

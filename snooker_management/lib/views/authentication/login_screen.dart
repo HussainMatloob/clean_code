@@ -154,11 +154,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                                   .loadingLogin,
                                               onLogin: () {
                                                 authenticationController
-                                                    .emailController
-                                                    .text = "demo@gmail.com";
+                                                        .emailController.text =
+                                                    "hussain@gmail.com"; //"demo@gmail.com";
                                                 authenticationController
-                                                    .passwordController
-                                                    .text = "12345678";
+                                                        .passwordController
+                                                        .text =
+                                                    "123456"; //"12345678";
                                                 authenticationController
                                                     .loginFunction(context);
                                               },
@@ -197,11 +198,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                               .loadingLogin,
                                           onLogin: () {
                                             authenticationController
-                                                .emailController
-                                                .text = "demo@gmail.com";
+                                                    .emailController.text =
+                                                "hussain@gmail.com"; //"demo@gmail.com";
                                             authenticationController
                                                 .passwordController
-                                                .text = "12345678";
+                                                .text = "123456"; //"12345678";
                                             authenticationController
                                                 .loginFunction(context);
                                           },

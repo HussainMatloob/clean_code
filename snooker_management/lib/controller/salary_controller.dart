@@ -1,15 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snooker_management/models/employee_detail_model.dart';
 import 'package:snooker_management/models/salary_model.dart';
+import 'package:snooker_management/services/pdf_services/salary_pdf_service.dart';
 import 'package:snooker_management/services/salary_servces.dart';
 import 'package:snooker_management/utils/flush_messages_util.dart';
 import 'package:snooker_management/utils/helper/dialog_helper.dart';
@@ -53,14 +52,6 @@ class SalaryController extends GetxController {
   void selectSalaryReportOption(String value) {
     selectedSalaryReportOption = value;
     update();
-  }
-
-  String formatDate(Timestamp timestamp) {
-    // Convert Timestamp to DateTime
-    DateTime dateTime = timestamp.toDate();
-
-    // Format DateTime to 'yyyy-MM-dd'
-    return DateFormat('dd-MM-yyyy').format(dateTime);
   }
 
   /*--------------------------------------------------------------------------*/
@@ -321,12 +312,12 @@ class SalaryController extends GetxController {
           List<SalaryModel> specificMonthSalary =
               await FirebaseSalaryServices.generateReportForSpecificMonth(
                   context, selectedMonthOrTable!);
-          EasyLoading.dismiss();
           if (!context.mounted) return;
           List<SalaryModel> salaryModel = specificMonthSalary;
           if (salaryModel.isNotEmpty) {
             salaryReportGenerator(context, salaryModel);
           } else {
+            EasyLoading.dismiss();
             DialogHelper.showNoticeDialog(
                 context, "No employee salaries were recorded for this month");
           }
@@ -343,12 +334,13 @@ class SalaryController extends GetxController {
                     context,
                     selectedSalaryReportOption!,
                     selectedSearchedName!);
-            EasyLoading.dismiss();
+
             if (!context.mounted) return;
             List<SalaryModel> salaryModel = salaryReportByName;
             if (salaryModel.isNotEmpty) {
               salaryReportGenerator(context, salaryModel);
             } else {
+              EasyLoading.dismiss();
               DialogHelper.showNoticeDialog(
                   context, "No salary records found for the selected name");
             }
@@ -358,12 +350,13 @@ class SalaryController extends GetxController {
             List<SalaryModel> salaryReportInDateRange =
                 await FirebaseSalaryServices.generateSalaryInDateRange(
                     context, selectedSalaryReportOption!);
-            EasyLoading.dismiss();
+
             List<SalaryModel> salaryModel = salaryReportInDateRange;
             if (salaryModel.isNotEmpty) {
               salaryReportGenerator(context, salaryModel);
             } else {
               if (!context.mounted) return;
+              EasyLoading.dismiss();
               DialogHelper.showNoticeDialog(context, "No salary records found");
             }
           }
@@ -377,105 +370,39 @@ class SalaryController extends GetxController {
       EasyLoading.dismiss();
       if (!context.mounted) return;
       DialogHelper.showExceptionErrorDialog(context, "$e");
-    } finally {
-      EasyLoading.dismiss();
     }
   }
 
-  int totalPages = 1;
-  int currentPage = 1;
   String? snookerName;
   Uint8List? image;
-  List<List<SalaryModel>> allPages = [];
-  void resetPdfCurrentPage() {
-    currentPage = 1;
-    update();
-  }
 
-  Future<Map<String, dynamic>> generatePdf(
-      BuildContext context, List<SalaryModel> salariesList) async {
-    final pdf = pw.Document();
-    const pageFormat = PdfPageFormat.a4; // A4 page format
-    final pageHeight = pageFormat.height; // A4 page height
-    const margin = 20.0; // Margin space for top, bottom, left, and right
-    const headerHeight = 30.0; // Space for header (adjust as needed)
-    const contentHeight = 20.0; // Height of each row (adjust based on content)
-    double currentHeight = headerHeight; // Start with header height
-    List<List<SalaryModel>> allPages = [];
-    List<SalaryModel> currentPageSalaries = [];
-
-    for (var salaries in salariesList) {
-      // Check if adding this row will exceed available space (accounting for margins and header)
-      if (currentHeight + contentHeight > (pageHeight - margin * 2)) {
-        // If it exceeds, add the current page to allPages and start a new page
-        allPages.add(currentPageSalaries);
-        currentPageSalaries = [salaries]; // Start with current row on next page
-        currentHeight = headerHeight +
-            contentHeight; // Reset height for new page (including header)
-      } else {
-        // If there's space, add the row to the current page
-        currentPageSalaries.add(salaries);
-        currentHeight += contentHeight; // Add row height to the current height
-      }
-    }
-
-    // Add remaining rows to the last page if any
-    if (currentPageSalaries.isNotEmpty) {
-      allPages.add(currentPageSalaries);
-    }
-
-    totalPages = allPages.length;
-
-    // Return the generated PDF document, total pages, and paginated data
-    return {'pdf': pdf, 'totalPages': totalPages, 'allPages': allPages};
-  }
-
-  void salaryReportGenerator(
-      BuildContext context, List<SalaryModel> salaryModel) async {
-    final result = await generatePdf(context, salaryModel);
-    final pdf = result['pdf'] as pw.Document;
-    totalPages = result['totalPages'] as int;
-    allPages = result['allPages'] as List<List<SalaryModel>>;
+  Uint8List? pdfBytes;
+  Future<void> salaryReportGenerator(
+      BuildContext context, List<SalaryModel> salries) async {
+    /// LOAD LOGO
     image =
         (await rootBundle.load(ImageConstant.tableLogo)).buffer.asUint8List();
 
+    /// LOAD CLUB NAME
     SharedPreferences sp = await SharedPreferences.getInstance();
     snookerName = sp.getString('clubName') ?? "";
+    update();
+
+    /// ⭐ GENERATE PDF
+    try {
+      pdfBytes = await SalaryPdfService.generatePdf(
+        salries: salries,
+        snookerName: snookerName ?? "",
+        image: image,
+      );
+    } catch (e) {
+      debugPrint("$e");
+    }
+
+    EasyLoading.dismiss();
+
+    update();
+    if (!context.mounted) return;
     context.go('/app/salaryPdf');
-  }
-
-  void goToFirstPage() {
-    if (currentPage != 1) {
-      currentPage = 1;
-      update();
-    }
-  }
-
-  void goToPreviousPage() {
-    if (currentPage > 1) {
-      currentPage--;
-      update();
-    }
-  }
-
-  void goToNextPage(int totalPages) {
-    if (currentPage < totalPages) {
-      currentPage++;
-      update();
-    }
-  }
-
-  void goToLastPage(int totalPages) {
-    if (currentPage != totalPages) {
-      currentPage = totalPages;
-      update();
-    }
-  }
-
-  void goToPage(int pageNumber, int totalPages) {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      currentPage = pageNumber;
-      update();
-    }
   }
 }

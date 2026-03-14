@@ -46,10 +46,13 @@ class _SalesTableViewState extends State<SalesTableView> {
                         width: mq.width,
                         margin: EdgeInsets.only(bottom: 15.h),
                         padding: EdgeInsets.symmetric(
-                            horizontal: 15.w, vertical: 10.h),
+                          horizontal: 15.w,
+                          vertical: 10.h,
+                        ),
                         decoration: BoxDecoration(
-                            color: ColorConstant.greenLightColor,
-                            borderRadius: BorderRadius.circular(5.r)),
+                          color: ColorConstant.greenLightColor,
+                          borderRadius: BorderRadius.circular(5.r),
+                        ),
                         child: Column(
                           children: [
                             Row(
@@ -64,70 +67,55 @@ class _SalesTableViewState extends State<SalesTableView> {
                                   color: ColorConstant.blackColor,
                                 ),
                                 CustomText(
-                                  saleController.formatDate(saleController
-                                      .searchedLosers[index].date!),
+                                  saleController.formatDate(
+                                    saleController.searchedLosers[index].date!,
+                                  ),
                                   fw: FontWeight.w400,
                                   size: 11.sp,
                                   color: ColorConstant.blackColor,
                                 ),
                               ],
                             ),
-                            SizedBox(
-                              height: 10.h,
-                            ),
+                            SizedBox(height: 10.h),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.only(right: 5.w),
-                                    child: CustomText(
-                                      saleController.searchedLosers[index]
-                                              .startTime ??
-                                          "",
-                                      fw: FontWeight.w400,
-                                      size: 11.sp,
-                                      color: ColorConstant.blackColor,
-                                    ),
+                                  child: CustomText(
+                                    textAlign: TextAlign.start,
+                                    saleController
+                                            .searchedLosers[index].startTime ??
+                                        "",
+                                    fw: FontWeight.w400,
+                                    size: 11.sp,
+                                    color: ColorConstant.blackColor,
                                   ),
                                 ),
                                 Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.only(right: 5.w),
-                                    child: CustomText(
-                                      saleController
-                                              .searchedLosers[index].endTime ??
-                                          "",
-                                      fw: FontWeight.w400,
-                                      size: 11.sp,
-                                      color: ColorConstant.blackColor,
-                                    ),
+                                  child: CustomText(
+                                    textAlign: TextAlign.center,
+                                    saleController
+                                            .searchedLosers[index].endTime ??
+                                        "",
+                                    fw: FontWeight.w400,
+                                    size: 11.sp,
+                                    color: ColorConstant.blackColor,
                                   ),
                                 ),
                                 Expanded(
-                                  child: Container(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        Expanded(
-                                          child: CustomText(
-                                            saleController.searchedLosers[index]
-                                                    .totalTime ??
-                                                "",
-                                            fw: FontWeight.w400,
-                                            size: 11.sp,
-                                            color: ColorConstant.blackColor,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                  child: CustomText(
+                                    textAlign: TextAlign.end,
+                                    saleController
+                                            .searchedLosers[index].totalTime ??
+                                        "",
+                                    fw: FontWeight.w400,
+                                    size: 11.sp,
+                                    color: ColorConstant.blackColor,
                                   ),
-                                )
+                                ),
                               ],
                             ),
-                            SizedBox(
-                              height: 10.h,
-                            ),
+                            SizedBox(height: 10.h),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -183,9 +171,7 @@ class _SalesTableViewState extends State<SalesTableView> {
                                 ),
                               ],
                             ),
-                            Divider(
-                              color: ColorConstant.hintTextColor,
-                            ),
+                            Divider(color: ColorConstant.hintTextColor),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -209,7 +195,8 @@ class _SalesTableViewState extends State<SalesTableView> {
                             ),
                           ],
                         ),
-                      ))
+                      ),
+                    )
                   : SaleTableRows(
                       cells: [
                         CustomTableCell(
@@ -253,7 +240,8 @@ class _SalesTableViewState extends State<SalesTableView> {
                         ),
                         CustomTableCell(
                           text: saleController.formatDate(
-                              saleController.searchedLosers[index].date!),
+                            saleController.searchedLosers[index].date!,
+                          ),
                           padding: 8.r,
                         ),
 
@@ -286,7 +274,7 @@ class _SalesTableViewState extends State<SalesTableView> {
                               ),
                             ),
                           ],
-                        )
+                        ),
                         // _buildTableCellImage(employeeDetailModel.image.toString()),
                       ],
                     );

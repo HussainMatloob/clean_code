@@ -21,13 +21,16 @@ class FirebaseReportServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      DateTime now = DateTime.now();
-      DateTime currentDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      DateTime now = DateTime.now().toUtc();
+      DateTime startDate = DateTime.utc(now.year, now.month, now.day);
+      DateTime endOfDay =
+          DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection("SaleManagement")
           .doc(uId)
           .collection("SaleDetails")
-          .where("date", isEqualTo: Timestamp.fromDate(currentDay))
+          .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where("date", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
           .get();
       // Calculate the sum of payedAmount
       double totalTodayTableSales =
@@ -53,9 +56,10 @@ class FirebaseReportServices {
     try {
       SharedPreferences sp = await SharedPreferences.getInstance();
       String uId = sp.getString('uId') ?? "";
-      DateTime now = DateTime.now();
-      DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
-      DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      DateTime now = DateTime.now().toUtc();
+      DateTime startOfDay = DateTime.utc(now.year, now.month, now.day);
+      DateTime endOfDay =
+          DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       QuerySnapshot<Map<String, dynamic>> snapshot = await fireStore
           .collection('ExpenseManagement')
           .doc(uId)
@@ -130,16 +134,16 @@ class FirebaseReportServices {
       DateTime endDate;
       DateTime now;
       if (isSelectedDate) {
-        now = DateTime.now();
+        now = DateTime.now().toUtc();
         DateTime parsedDate = DateFormat("dd-MM-yyyy").parse(selectedDate);
-        startDate = DateTime(
-            parsedDate.year, parsedDate.month, parsedDate.day, 0, 0, 0);
+        startDate =
+            DateTime.utc(parsedDate.year, parsedDate.month, parsedDate.day);
         endDate = DateTime(
             parsedDate.year, parsedDate.month, parsedDate.day, 23, 59, 59);
       } else {
-        now = DateTime.now();
-        startDate = DateTime(now.year, now.month, now.day, 0, 0, 0);
-        endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        now = DateTime.now().toUtc();
+        startDate = DateTime.utc(now.year, now.month, now.day);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       }
 
       if (dateRange == "Daily") {
@@ -161,16 +165,15 @@ class FirebaseReportServices {
       } else if (dateRange == "Weekly") {
         startDate =
             now.subtract(const Duration(days: 6)); // 7 days back from today
-        startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
         startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+            DateTime.utc(now.year, now.month - 1, now.day); // 1 month back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
         startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+            DateTime.utc(now.year - 1, now.month, now.day); // 1 year back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else {
         // If the condition doesn't match, return an empty list
         return 0.0;
@@ -207,16 +210,16 @@ class FirebaseReportServices {
       DateTime endDate;
       DateTime now;
       if (isSelectedDate) {
-        now = DateTime.now();
+        now = DateTime.now().toUtc();
         DateTime parsedDate = DateFormat("dd-MM-yyyy").parse(selectedDate);
-        startDate = DateTime(
-            parsedDate.year, parsedDate.month, parsedDate.day, 0, 0, 0);
-        endDate = DateTime(
+        startDate =
+            DateTime.utc(parsedDate.year, parsedDate.month, parsedDate.day);
+        endDate = DateTime.utc(
             parsedDate.year, parsedDate.month, parsedDate.day, 23, 59, 59);
       } else {
-        now = DateTime.now();
-        startDate = DateTime(now.year, now.month, now.day, 0, 0, 0);
-        endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        now = DateTime.now().toUtc();
+        startDate = DateTime.utc(now.year, now.month, now.day);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       }
 
       if (dateRange == "Daily") {
@@ -278,16 +281,15 @@ class FirebaseReportServices {
       } else if (dateRange == "Weekly") {
         startDate =
             now.subtract(const Duration(days: 6)); // 7 days back from today
-        startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
         startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+            DateTime.utc(now.year, now.month - 1, now.day); // 1 month back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
         startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+            DateTime.utc(now.year - 1, now.month, now.day); // 1 year back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else {
         // If the condition doesn't match, return an empty list
         return 0.0;
@@ -361,16 +363,19 @@ class FirebaseReportServices {
       DateTime endDate;
       DateTime now;
       if (isSelectedDate) {
-        now = DateTime.now();
+        now = DateTime.now().toUtc();
         DateTime parsedDate = DateFormat("dd-MM-yyyy").parse(selectedDate);
-        startDate = DateTime(
-            parsedDate.year, parsedDate.month, parsedDate.day, 0, 0, 0);
-        endDate = DateTime(
+        startDate = DateTime.utc(
+          parsedDate.year,
+          parsedDate.month,
+          parsedDate.day,
+        );
+        endDate = DateTime.utc(
             parsedDate.year, parsedDate.month, parsedDate.day, 23, 59, 59);
       } else {
-        now = DateTime.now();
-        startDate = DateTime(now.year, now.month, now.day, 0, 0, 0);
-        endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        now = DateTime.now().toUtc();
+        startDate = DateTime.utc(now.year, now.month, now.day);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       }
 
       if (dateRange == "Daily") {
@@ -394,16 +399,15 @@ class FirebaseReportServices {
       } else if (dateRange == "Weekly") {
         startDate =
             now.subtract(const Duration(days: 6)); // 7 days back from today
-        startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
         startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+            DateTime.utc(now.year, now.month - 1, now.day); // 1 month back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
         startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+            DateTime.utc(now.year - 1, now.month, now.day); // 1 year back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else {
         // If the condition doesn't match, return an empty list
         return 0.0;
@@ -445,16 +449,16 @@ class FirebaseReportServices {
       DateTime endDate;
       DateTime now;
       if (isSelectedDate) {
-        now = DateTime.now();
+        now = DateTime.now().toUtc();
         DateTime parsedDate = DateFormat("dd-MM-yyyy").parse(selectedDate);
-        startDate = DateTime(
-            parsedDate.year, parsedDate.month, parsedDate.day, 0, 0, 0);
-        endDate = DateTime(
+        startDate =
+            DateTime.utc(parsedDate.year, parsedDate.month, parsedDate.day);
+        endDate = DateTime.utc(
             parsedDate.year, parsedDate.month, parsedDate.day, 23, 59, 59);
       } else {
-        now = DateTime.now();
-        startDate = DateTime(now.year, now.month, now.day, 0, 0, 0);
-        endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        now = DateTime.now().toUtc();
+        startDate = DateTime.utc(now.year, now.month, now.day);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       }
 
       if (dateRange == "Daily") {
@@ -533,16 +537,15 @@ class FirebaseReportServices {
       } else if (dateRange == "Weekly") {
         startDate =
             now.subtract(const Duration(days: 6)); // 7 days back from today
-        startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Monthly") {
-        startDate = DateTime(now.year, now.month - 1, now.day); // 1 month back
         startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+            DateTime.utc(now.year, now.month - 1, now.day); // 1 month back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else if (dateRange == "Yearly") {
-        startDate = DateTime(now.year - 1, now.month, now.day); // 1 year back
         startDate =
-            DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+            DateTime.utc(now.year - 1, now.month, now.day); // 1 year back
+        endDate = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
       } else {
         // If the condition doesn't match, return an empty list
         return [0.0, 0.0, 0.0];

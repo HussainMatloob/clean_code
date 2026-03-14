@@ -6,6 +6,7 @@ import 'package:snooker_management/constants/color_constants.dart';
 import 'package:snooker_management/controller/attendance_controller.dart';
 import 'package:snooker_management/controller/auth_controller.dart';
 import 'package:snooker_management/main.dart';
+import 'package:snooker_management/utils/date_time_utils.dart';
 import 'package:snooker_management/utils/helper/responsive_helper.dart';
 
 import 'package:snooker_management/views/screens/attendance_management/attendance_table_row.dart';
@@ -398,11 +399,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                                     padding: 8.r,
                                                   ),
                                                   CustomTableCell(
-                                                    text: attendanceController
-                                                        .formatDate(
-                                                            attendanceController
-                                                                .searchedAttendance!
-                                                                .date!),
+                                                    text: DateTimeUtils.formatDate(
+                                                        attendanceController
+                                                            .searchedAttendance!
+                                                            .date!),
                                                     padding: 8.r,
                                                   ),
                                                   CustomTableCell(

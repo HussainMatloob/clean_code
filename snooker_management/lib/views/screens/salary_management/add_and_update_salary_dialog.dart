@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:snooker_management/constants/color_constants.dart';
 import 'package:snooker_management/controller/salary_controller.dart';
+import 'package:snooker_management/utils/helper/responsive_helper.dart';
 import 'package:snooker_management/views/widgets/custom_drop_down_button.dart';
 import 'package:snooker_management/views/widgets/custom_text.dart';
 import '../../../main.dart';
@@ -85,6 +86,9 @@ class AddAndUpdateSalaryDialog {
                                   textColor: ColorConstant.hintTextColor,
                                   isShowingCustomNames: true,
                                   controller: salaryController,
+                                  height: ResponsiveHelper.isMobile(context)
+                                      ? 40.h
+                                      : 57.h,
                                 ),
                                 SizedBox(
                                   height: mq.height * 0.04,

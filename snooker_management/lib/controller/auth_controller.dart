@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snooker_management/constants/enum_constant.dart';
 
@@ -600,22 +601,20 @@ class AuthenticationController extends GetxController {
   /*--------------------------------------------------------------------------*/
   /*                                pick local Image                           */
   /*--------------------------------------------------------------------------*/
-  typed_data.Uint8List? newImage;
 
-  void pickImage(typed_data.Uint8List? image) {
-    newImage = image;
-    update();
-  }
+  typed_data.Uint8List? newImage;
 
   Future<void> imagePicker() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
+      final ImagePicker picker = ImagePicker();
+
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery, //  only gallery
       );
-      if (result != null && result.files.single.bytes != null) {
-        typed_data.Uint8List imageBytes = result.files.single.bytes!;
-        pickImage(imageBytes);
+
+      if (image != null) {
+        newImage = await image.readAsBytes();
+        update();
       }
     } catch (e) {
       print("Error picking image: $e");

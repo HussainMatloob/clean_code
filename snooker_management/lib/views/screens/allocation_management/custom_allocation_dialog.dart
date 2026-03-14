@@ -78,23 +78,41 @@ class CustomAllocationDialog {
                             padding: EdgeInsets.all(30.r),
                             child: Column(
                               children: [
-                                Row(
-                                  children: [
-                                    CustomRadioButton(
-                                      status: "Single",
-                                      controller: allocationController,
-                                      isAllocation: true,
-                                    ),
-                                    SizedBox(
-                                      width: 10.h,
-                                    ),
-                                    CustomRadioButton(
-                                      status: "Double",
-                                      controller: allocationController,
-                                      isAllocation: true,
-                                    ),
-                                  ],
-                                ),
+                                MediaQuery.of(context).size.width < 350
+                                    ? Column(
+                                        children: [
+                                          CustomRadioButton(
+                                            status: "Single",
+                                            controller: allocationController,
+                                            isAllocation: true,
+                                          ),
+                                          SizedBox(
+                                            width: 10.h,
+                                          ),
+                                          CustomRadioButton(
+                                            status: "Double",
+                                            controller: allocationController,
+                                            isAllocation: true,
+                                          ),
+                                        ],
+                                      )
+                                    : Row(
+                                        children: [
+                                          CustomRadioButton(
+                                            status: "Single",
+                                            controller: allocationController,
+                                            isAllocation: true,
+                                          ),
+                                          SizedBox(
+                                            width: 10.w,
+                                          ),
+                                          CustomRadioButton(
+                                            status: "Double",
+                                            controller: allocationController,
+                                            isAllocation: true,
+                                          ),
+                                        ],
+                                      ),
                                 SizedBox(
                                   height: 20.h,
                                 ),

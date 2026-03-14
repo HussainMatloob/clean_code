@@ -246,7 +246,7 @@ class AddAndUpdateMemberDialog {
                                   dropDownListTextSize: 16.sp,
                                   controller: memberController,
                                   height: ResponsiveHelper.isMobile(context)
-                                      ? 48.h
+                                      ? 40.h
                                       : 57.h,
                                 ),
 
