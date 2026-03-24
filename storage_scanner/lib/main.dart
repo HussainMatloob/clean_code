@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:storage_scanner/core/scale.dart';
 import 'package:storage_scanner/view/screens/home_page.dart';
 
 void main() {
@@ -11,7 +13,8 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    Scale.init(context);
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Storage Scanner',
       theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),

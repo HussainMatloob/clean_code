@@ -7,27 +7,50 @@ void scanFilesIsolate(SendPort sendPort) async {
 
   int count = 0;
 
-  await for (var entity in root.list(recursive: true, followLinks: false)) {
+  Future<void> scanDir(Directory dir) async {
     try {
-      count++;
-
-      if (entity is File) {
-        int size = await entity.length();
-        double sizeMB = size / (1024 * 1024);
-
-        bool isHidden = entity.path.contains('/.');
-
-        if (sizeMB > 50 || isHidden) {
-          result.add({'path': entity.path, 'size': sizeMB, 'hidden': isHidden});
-        }
+      //   Skip restricted folders BEFORE accessing
+      if (dir.path.contains('/Android/data') ||
+          dir.path.contains('/Android/obb')) {
+        return;
       }
 
-      // Send progress every 100 files
-      if (count % 100 == 0) {
-        sendPort.send({'progress': count});
+      await for (var entity in dir.list(followLinks: false)) {
+        try {
+          if (entity is Directory) {
+            await scanDir(entity); // recursive call
+          } else if (entity is File) {
+            count++;
+
+            int size = await entity.length();
+            double sizeMB = size / (1024 * 1024);
+
+            bool isHidden = entity.path.contains('/.');
+
+            if (sizeMB > 50 || isHidden) {
+              result.add({
+                'path': entity.path,
+                'size': sizeMB,
+                'hidden': isHidden,
+              });
+            }
+
+            // 🔹 progress update
+            if (count % 100 == 0) {
+              int percent = (count ~/ 1000);
+              if (percent > 100) percent = 100;
+
+              sendPort.send({'progress': percent});
+            }
+          }
+        } catch (_) {}
       }
-    } catch (_) {}
+    } catch (_) {
+      // ignore permission errors safely
+    }
   }
+
+  await scanDir(root);
 
   sendPort.send({'done': result});
 }
